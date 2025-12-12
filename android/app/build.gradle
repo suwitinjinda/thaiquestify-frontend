@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.client'
+    namespace 'com.munmunback.thaiquestify'
     defaultConfig {
-        applicationId 'com.anonymous.client'
+        applicationId 'com.munmunback.thaiquestify'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

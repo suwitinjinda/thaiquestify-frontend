@@ -3,8 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: 'http://192.168.1.40:5000/api/', // Change to your actual backend URL
-  timeout: 15000,
+  baseURL: 'http://thaiquestify.com:5000/api/', // ✅ This should work now
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,7 +16,7 @@ api.interceptors.request.use(
     try {
       // Get token from AsyncStorage
       const token = await AsyncStorage.getItem('authToken');
-      
+
       if (token) {
         console.log('🔐 Adding token to request:', config.url);
         config.headers.Authorization = `Bearer ${token}`;
@@ -27,10 +27,10 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${demoToken}`;
         console.log('🔄 Using demo token for development');
       }
-      
+
       console.log('🚀 Making API request to:', config.url);
       return config;
-      
+
     } catch (error) {
       console.error('❌ Request interceptor error:', error);
       return config;

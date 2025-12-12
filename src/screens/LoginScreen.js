@@ -1,408 +1,634 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Image, 
-  ActivityIndicator, 
+// screens/LoginScreen.js - FINAL REVISED CODE
+
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  StatusBar,
   ScrollView,
-  RefreshControl 
+  Linking, // Import Linking
+  Platform,
 } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import IconFA from 'react-native-vector-icons/FontAwesome';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri, useAuthRequest, ResponseType, exchangeCodeAsync } from 'expo-auth-session';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const LoginScreen = ({ navigation }) => {
-  const { 
-    signInWithRealUser, 
-    quickLoginByType,
-    loading, 
-    realUsers, 
-    usersLoading,
-    fetchRealUsers 
-  } = useAuth();
-  
-  const [refreshing, setRefreshing] = useState(false);
+WebBrowser.maybeCompleteAuthSession();
 
-  // Fetch real users on component mount
-  useEffect(() => {
-    fetchRealUsers();
+// ======================= CONFIG =======================
+const API_URL = 'https://thaiquestify.com/api';
+const FACEBOOK_APP_ID = '1479841916431052';
+const redirectUri = 'https://thaiquestify.com/auth/callback';
+
+const discovery = {
+  authorizationEndpoint: 'https://www.facebook.com/v20.0/dialog/oauth',
+  tokenEndpoint: 'https://graph.facebook.com/v20.0/oauth/access_token',
+};
+
+console.log('=== FACEBOOK LOGIN CONFIG (FINAL) ===');
+console.log('✅ Redirect URI:', redirectUri);
+console.log('✅ Platform:', Platform.OS);
+console.log('================================');
+
+// ฟังก์ชันสำหรับ Parse Query String ที่ปลอดภัยจาก Error 'URLSearchParams not implemented'
+const getQueryParams = (url) => {
+  // ดึง Query String (ส่วนที่อยู่หลัง ?)
+  const queryString = url.split('?')[1];
+  if (!queryString) return {};
+
+  // แปลง "key=value&key2=value2" เป็น Object { key: value, ... }
+  return queryString.split('&').reduce((params, param) => {
+    const parts = param.split('=');
+    if (parts.length === 2) {
+      // ใช้ decodeURIComponent เพื่อจัดการค่าที่มีการเข้ารหัส
+      params[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
+    }
+    return params;
+  }, {});
+};
+
+// =====================================================
+export default function LoginScreen({ navigation }) {
+  const [facebookLoading, setFacebookLoading] = useState(false);
+  const [debugData, setDebugData] = useState({
+    step1: null,
+    step2: null,
+    finalResult: null,
+    errors: []
+  });
+
+  // เพิ่ม debug info
+  const addDebugInfo = useCallback((step, data, isError = false) => {
+    console.log(`🔍 [${step}]`, data);
+    setDebugData(prev => ({
+      ...prev,
+      [step]: data,
+      ...(isError && {
+        errors: [...prev.errors, { step, data, timestamp: new Date().toISOString() }]
+      })
+    }));
   }, []);
 
-  const handleRealUserLogin = async (user) => {
+  // ขั้นตอน 2: ส่ง access_token ไป login จริง
+  const finalLoginWithToken = async (accessToken) => {
+    console.log('🔐 Finalizing login...');
     try {
-      console.log('👆 Logging in as:', user.name);
-      await signInWithRealUser(user);
-    } catch (error) {
-      console.error('Login failed:', error);
+      const loginRes = await fetch(`${API_URL}/auth/facebook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ token: accessToken }),
+      });
+      // ... (Logic การจัดการ Login/Navigation) ...
+      const result = await loginRes.json();
+      addDebugInfo('finalResult', { url: `${API_URL}/auth/facebook`, status: loginRes.status, response: result });
+
+      if (result.success) {
+        console.log('✅ LOGIN SUCCESSFUL!');
+        await AsyncStorage.setItem('authToken', result.token);
+        await AsyncStorage.setItem('userData', JSON.stringify(result.user));
+        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      } else {
+        console.error('❌ Final login failed:', result);
+        Alert.alert('เข้าสู่ระบบล้มเหลว', result.message || 'ไม่สามารถเข้าสู่ระบบได้');
+        setFacebookLoading(false);
+      }
+    } catch (err) {
+      console.error('❌ Login error:', err);
+      Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถดำเนินการเข้าสู่ระบบได้');
+      setFacebookLoading(false);
     }
   };
 
-  const handleQuickLogin = async (userType) => {
+  // ขั้นตอน 1: ส่ง code ไป backend แลก access_token
+  const exchangeCodeForToken = useCallback(async ({ code, state, redirectUri, discovery }) => {
     try {
-      console.log('🚀 Quick login as:', userType);
-      const result = await quickLoginByType(userType);
-      
-      if (!result.success) {
-        console.log('❌ Quick login failed:', result.error);
-        // You can show an alert here if needed
+      console.log('🔄 [CLIENT] Starting exchangeCodeAsync...');
+
+      const tokenResponse = await exchangeCodeAsync(
+        {
+          clientId: FACEBOOK_APP_ID,
+          code: code,
+          redirectUri: redirectUri,
+          extraParams: { state: state },
+        },
+        discovery,
+      );
+
+      console.log('✅ [CLIENT] Token Exchange Success!');
+      const facebookAccessToken = tokenResponse.accessToken;
+
+      await finalLoginWithToken(facebookAccessToken);
+
+    } catch (error) {
+      console.error('❌ [CLIENT] Token Exchange Failed:', error);
+      Alert.alert('ข้อผิดพลาด', 'ไม่สามารถแลกเปลี่ยนรหัสเข้าสู่ระบบได้');
+      setFacebookLoading(false);
+    }
+  }, [finalLoginWithToken]);
+
+  const [request, response, promptAsync] = useAuthRequest(
+    {
+      clientId: FACEBOOK_APP_ID,
+      redirectUri,
+      scopes: ['public_profile', 'email'],
+      responseType: ResponseType.Code,
+      extraParams: { display: 'popup' },
+    },
+    discovery
+  );
+
+
+  // 🎯 [FIXED] useEffect สำหรับจัดการ Response และ Deep Link
+  useEffect(() => {
+    // ----------------------------------------------------
+    // 1. จัดการ Response จาก useAuthRequest (กรณีปกติ)
+    // ----------------------------------------------------
+    if (response?.type === 'success' && response.params) {
+      console.log('--- CLIENT AUTH RESPONSE RECEIVED (useAuthRequest) ---');
+      console.log('Params:', response.params);
+
+      const { code, error, error_description } = response.params;
+
+      if (code) {
+        console.log('✅ CLIENT received Code from Backend via useAuthRequest. Initiating Exchange.');
+        exchangeCodeForToken({
+          code,
+          state: response.params.state,
+          redirectUri,
+          discovery,
+          // request, // ไม่จำเป็นสำหรับ exchangeCodeForToken
+        });
+      } else if (error) {
+        const errorMessage = error_description || error;
+        Alert.alert("เกิดข้อผิดพลาด", `Error: ${errorMessage}`);
+        setFacebookLoading(false);
+      }
+    }
+
+    // ----------------------------------------------------
+    // 2. จัดการ Deep Link โดยตรง (กรณีที่ useAuthRequest ค้าง/ไม่ทำงาน)
+    // ----------------------------------------------------
+
+    // ฟังก์ชัน Listener สำหรับรับลิงก์เมื่อแอปกำลังรันอยู่
+    const handleDeepLink = ({ url }) => {
+      if (url && url.includes('code=')) {
+        console.log('🔗 [DEEP LINK] RECEIVED (App Running):', url);
+
+        // **FIX: ใช้ url แทน initialUrl**
+        const urlParams = getQueryParams(url);
+        const code = urlParams.code;
+        const state = urlParams.state;
+
+        if (code) {
+          console.log('✅ [DEEP LINK] Found Code! Initiating Exchange via direct link.');
+          exchangeCodeForToken({
+            code,
+            state,
+            redirectUri,
+            discovery,
+          });
+        }
+      }
+    };
+
+    // 🎯 FIX: เรียก getInitialURL ด้วย .then() เพื่อจัดการ Promise และ Error ที่ดีขึ้น
+    Linking.getInitialURL()
+      .then(initialUrl => {
+        if (initialUrl && initialUrl.includes('code=')) {
+          console.log('🔗 [DEEP LINK] RECEIVED (Initial URL):', initialUrl);
+          const urlParams = getQueryParams(initialUrl);
+          const code = urlParams.code;
+          const state = urlParams.state;
+
+          if (code) {
+            console.log('✅ [DEEP LINK] Found Code! Initiating Exchange via initial link.');
+            exchangeCodeForToken({ code, state, redirectUri, discovery });
+          }
+        }
+      })
+      .catch(e => {
+        console.error('❌ Error calling Linking.getInitialURL:', e.message || e);
+      });
+
+    // ลงทะเบียน Listener
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Cleanup listener เมื่อ Component ถูกทำลาย
+    return () => {
+      subscription.remove();
+    };
+
+  }, [response, exchangeCodeForToken, redirectUri, discovery]); // เพิ่ม dependencies ที่ถูกต้อง
+
+  // ... (ส่วนอื่นๆ ของ Component - handleFacebookLogin, testSimpleWebBrowser, formatDebugData)
+
+  // ... (ส่วนอื่นๆ ของ Component - handleFacebookLogin, testSimpleWebBrowser, formatDebugData)
+
+  // ... (การแสดงผล/Return JSX) ...
+
+  // ... (การแสดงผล/Return JSX) ...
+  // ... (JSX ของ View และ Styles) ...
+  // ... (JSX ของ View และ Styles) ...
+
+  // ... (ต่อด้วย Stylesheet) ...
+
+  // ฟังก์ชันหลักสำหรับ Facebook login
+  const handleFacebookLogin = async () => {
+    console.log('🔵 Starting Facebook login...');
+
+    // Clear old debug data
+    setDebugData({
+      step1: null,
+      step2: null,
+      finalResult: null,
+      errors: []
+    });
+
+    if (!request) {
+      Alert.alert('กำลังเตรียมการ...', 'กรุณารอสักครู่');
+      return;
+    }
+
+    setFacebookLoading(true);
+    addDebugInfo('step1', {
+      message: 'Starting Facebook login process',
+      timestamp: new Date().toISOString(),
+      redirectUri: redirectUri
+    });
+
+    try {
+      console.log('🌐 Opening Facebook login...');
+      console.log('🌐 Using redirect URI:', redirectUri);
+
+      // ใช้ promptAsync โดยไม่กำหนด options มากเกินไป
+      await promptAsync();
+
+    } catch (error) {
+      console.error('❌ Error opening Facebook login:', error);
+      Alert.alert(
+        'ไม่สามารถเปิด Facebook ได้',
+        error.message || 'กรุณาลองอีกครั้ง'
+      );
+      setFacebookLoading(false);
+    }
+  };
+
+  // ฟังก์ชันทดสอบด้วย WebBrowser แบบง่าย
+  const testSimpleWebBrowser = async () => {
+    console.log('🔵 Testing simple WebBrowser login');
+    setFacebookLoading(true);
+
+    try {
+      // ใช้ URL แบบง่าย
+      const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent('https://thaiquestify.com/auth/callback')}&response_type=code&scope=public_profile,email`;
+
+      console.log('🔗 Simple Auth URL:', authUrl);
+
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        'thaiquestify://auth', // 🎯 เปลี่ยนจาก Web URI เป็น App Scheme
+        {
+          showTitle: false,
+          enableBarCollapsing: true,
+        }
+      );
+
+      console.log('📱 WebBrowser result type:', result.type);
+
+      if (result.type === 'success' && result.url) {
+        console.log('✅ Success URL:', result.url);
+
+        // Parse code จาก URL แบบง่าย
+        const urlString = result.url;
+        const urlParams = getQueryParams(urlString);
+        const code = urlParams.code;
+        const state = urlParams.state; // WebBrowser อาจจะไม่ส่ง state กลับมา
+
+        if (code) {
+          console.log('✅ Got code from WebBrowser');
+          exchangeCodeForToken({ code, state, redirectUri, discovery });
+        } else {
+          Alert.alert('Error', 'No code in response');
+          setFacebookLoading(false);
+        }
+      } else {
+        console.log('❌ WebBrowser cancelled or failed');
+        Alert.alert('ยกเลิก', 'การเข้าสู่ระบบถูกยกเลิก');
+        setFacebookLoading(false);
       }
     } catch (error) {
-      console.error('Quick login failed:', error);
+      console.error('❌ WebBrowser error:', error);
+      Alert.alert('Error', error.message);
+      setFacebookLoading(false);
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchRealUsers();
-    setRefreshing(false);
-  };
-
-  // Get user type color
-  const getUserTypeColor = (userType) => {
-    switch (userType) {
-      case 'admin': return '#dc3545';
-      case 'partner': return '#4a6baf';
-      case 'shop': return '#28a745';
-      case 'customer': return '#ffc107';
-      default: return '#666';
-    }
-  };
-
-  // Get user type display name
-  const getUserTypeDisplay = (userType) => {
-    switch (userType) {
-      case 'admin': return 'ผู้ดูแลระบบ';
-      case 'partner': return 'พาร์ทเนอร์';
-      case 'shop': return 'ร้านค้า';
-      case 'customer': return 'ลูกค้า';
-      default: return userType;
+  // แสดงข้อมูล debug
+  const formatDebugData = (data) => {
+    if (!data) return 'No data';
+    try {
+      const safeData = { ...data };
+      // ซ่อนข้อมูล sensitive
+      if (safeData.params?.code) {
+        safeData.params.code = '***' + safeData.params.code.substring(safeData.params.code.length - 6);
+      }
+      return JSON.stringify(safeData, null, 2);
+    } catch {
+      return String(data);
     }
   };
 
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>ThaiQuestify</Text>
-        <Text style={styles.subtitle}>ระบบจัดการร้านค้า</Text>
-      </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#4a6baf', '#6b8cce', '#8fa8e3']} style={styles.bg}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.content}>
+            <Text style={styles.title}>ThaiQuestify</Text>
+            <Text style={styles.subtitle}>เข้าสู่ระบบเพื่อเริ่มใช้งาน</Text>
 
-      {/* Real Users Section */}
-      <View style={styles.usersSection}>
-        <Text style={styles.sectionTitle}>บัญชีผู้ใช้จากระบบ</Text>
-        <Text style={styles.sectionSubtitle}>
-          {usersLoading ? 'กำลังโหลด...' : `${realUsers.length} บัญชีผู้ใช้`}
-        </Text>
-
-        {usersLoading ? (
-          <View style={styles.loadingState}>
-            <ActivityIndicator size="large" color="#dc3545" />
-            <Text style={styles.loadingText}>กำลังโหลดข้อมูลผู้ใช้...</Text>
-          </View>
-        ) : realUsers.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>ไม่พบข้อมูลผู้ใช้</Text>
-            <Text style={styles.emptyStateSubtext}>
-              ลากลงเพื่อรีเฟรชหรือตรวจสอบการเชื่อมต่อ
-            </Text>
-          </View>
-        ) : (
-          realUsers.map((user) => (
-            <TouchableOpacity 
-              key={user._id}
-              style={styles.userButton}
-              onPress={() => handleRealUserLogin(user)}
-              disabled={loading}
+            <TouchableOpacity
+              style={[styles.fbButton, facebookLoading && styles.buttonDisabled]}
+              onPress={handleFacebookLogin}
+              disabled={facebookLoading}
             >
-              <View style={[styles.userAvatar, { backgroundColor: getUserTypeColor(user.userType) }]}>
-                <Text style={styles.userAvatarText}>
-                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                </Text>
-              </View>
-              
-              <View style={styles.userInfo}>
-                <Text style={styles.userName}>{user.name}</Text>
-                <View style={styles.userDetails}>
-                  <Text style={styles.userType}>{getUserTypeDisplay(user.userType)}</Text>
-                  <Text style={styles.userEmail}>{user.email}</Text>
+              {facebookLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text style={styles.fbTextLoading}>กำลังดำเนินการ...</Text>
                 </View>
-                {user.partnerCode && (
-                  <Text style={styles.partnerCode}>รหัสพาร์ทเนอร์: {user.partnerCode}</Text>
-                )}
-                {user.phone && (
-                  <Text style={styles.userPhone}>📞 {user.phone}</Text>
-                )}
-                <Text style={styles.userStatus}>
-                  สถานะ: {user.isActive ? '✅ เปิดใช้งาน' : '❌ ปิดใช้งาน'}
-                </Text>
-              </View>
-              
-              <View style={styles.loginIndicator}>
-                {loading ? (
-                  <ActivityIndicator size="small" color="#4a6baf" />
-                ) : (
-                  <Text style={styles.loginText}>เข้าสู่ระบบ</Text>
-                )}
-              </View>
+              ) : (
+                <>
+                  <IconFA name="facebook" size={24} color="#fff" />
+                  <Text style={styles.fbText}>เข้าสู่ระบบด้วย Facebook</Text>
+                </>
+              )}
             </TouchableOpacity>
-          ))
-        )}
-      </View>
 
-      {/* Quick Login by Type */}
-      <View style={styles.quickLoginSection}>
-        <Text style={styles.quickLoginTitle}>เข้าสู่ระบบด่วนตามบทบาท</Text>
-        <View style={styles.quickLoginButtons}>
-          <TouchableOpacity 
-            style={[styles.quickButton, styles.adminButton]}
-            onPress={() => handleQuickLogin('admin')}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text style={styles.quickButtonText}>ผู้ดูแลระบบ</Text>
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.quickButton, styles.partnerButton]}
-            onPress={() => handleQuickLogin('partner')}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text style={styles.quickButtonText}>พาร์ทเนอร์</Text>
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.quickButton, styles.shopButton]}
-            onPress={() => handleQuickLogin('shop')}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text style={styles.quickButtonText}>ร้านค้า</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+            {/* ปุ่มทดสอบแบบง่าย */}
+            <TouchableOpacity
+              style={[styles.testButton, facebookLoading && styles.buttonDisabled]}
+              onPress={testSimpleWebBrowser}
+              disabled={facebookLoading}
+            >
+              <Text style={styles.testButtonText}>ทดสอบแบบธรรมดา (เปิดในเบราว์เซอร์)</Text>
+            </TouchableOpacity>
 
-      {/* App Info */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>ThaiQuestify Admin Panel</Text>
-        <Text style={styles.footerVersion}>Version 1.0.0</Text>
-      </View>
-    </ScrollView>
+            {/* DEBUG SECTION */}
+            <View style={styles.debugContainer}>
+              <Text style={styles.debugTitle}>🔧 ข้อมูล Debug</Text>
+
+              <View style={styles.debugBox}>
+                <Text style={styles.debugSubtitle}>การตั้งค่า</Text>
+                <Text style={styles.stateText}>Redirect URI: {redirectUri}</Text>
+                <Text style={styles.stateText}>แพลตฟอร์ม: {Platform.OS}</Text>
+              </View>
+
+              <View style={styles.debugBox}>
+                <Text style={styles.debugSubtitle}>สถานะปัจจุบัน</Text>
+                <Text style={styles.stateText}>
+                  กำลังโหลด: {facebookLoading ? '✅ กำลังดำเนินการ' : '❌ ไม่ได้โหลด'}
+                </Text>
+                <Text style={styles.stateText}>
+                  Response ล่าสุด: {response?.type || 'ยังไม่มี'}
+                </Text>
+                {response?.params?.error && (
+                  <Text style={styles.errorStateText}>
+                    ข้อผิดพลาด: {response.params.error}
+                  </Text>
+                )}
+              </View>
+
+              {/* Step Results */}
+              {debugData.step1 && (
+                <View style={styles.debugBox}>
+                  <Text style={styles.debugSubtitle}>ขั้นตอน 1: การตอบกลับจาก Facebook</Text>
+                  <ScrollView style={styles.dataScrollView}>
+                    <Text style={styles.dataText}>
+                      {formatDebugData(debugData.step1)}
+                    </Text>
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* Step 2 Result */}
+              {debugData.step2 && (
+                <View style={styles.debugBox}>
+                  <Text style={styles.debugSubtitle}>ขั้นตอน 2: การแลกเปลี่ยนรหัส</Text>
+                  <ScrollView style={styles.dataScrollView}>
+                    <Text style={styles.dataText}>
+                      {formatDebugData(debugData.step2)}
+                    </Text>
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* Step 3 Result */}
+              {debugData.finalResult && (
+                <View style={styles.debugBox}>
+                  <Text style={styles.debugSubtitle}>ขั้นตอน 3: การเข้าสู่ระบบขั้นสุดท้าย</Text>
+                  <ScrollView style={styles.dataScrollView}>
+                    <Text style={styles.dataText}>
+                      {formatDebugData(debugData.finalResult)}
+                    </Text>
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* คำแนะนำแก้ปัญหา */}
+              <View style={styles.troubleshootBox}>
+                <Text style={styles.troubleshootTitle}>🛠️ แก้ไขปัญหา "Something went wrong"</Text>
+                <Text style={styles.troubleshootText}>
+                  หากเห็นข้อความ "Something went wrong" ใน Facebook:
+                </Text>
+                <Text style={styles.troubleshootText}>1. ตรวจสอบว่า URL นี้ถูกเพิ่มใน Facebook App Settings:</Text>
+                <Text style={styles.troubleshootCode}>{redirectUri}</Text>
+                <Text style={styles.troubleshootText}>2. ลองใช้ปุ่ม "ทดสอบแบบธรรมดา"</Text>
+                <Text style={styles.troubleshootText}>3. ลองลบแอป Facebook และติดตั้งใหม่</Text>
+                <Text style={styles.troubleshootText}>4. ลองใช้เครื่องหรือเบราว์เซอร์อื่น</Text>
+              </View>
+
+              {/* ปุ่มล้างข้อมูล debug */}
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => setDebugData({
+                  step1: null,
+                  step2: null,
+                  finalResult: null,
+                  errors: []
+                })}
+              >
+                <Text style={styles.clearButtonText}>ล้างข้อมูล Debug</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </LinearGradient>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
+  container: { flex: 1 },
+  bg: { flex: 1 },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 20,
   },
-  header: {
+  content: {
+    width: '90%',
+    maxWidth: 400,
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: 'white',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    marginBottom: 20,
+    alignSelf: 'center',
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#dc3545',
-    marginBottom: 8,
+    color: '#fff',
+    marginBottom: 10,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
-  },
-  usersSection: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  loadingState: {
-    backgroundColor: 'white',
-    padding: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666',
-  },
-  emptyState: {
-    backgroundColor: 'white',
-    padding: 30,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 8,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-  },
-  userButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  userAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  userAvatarText: {
-    color: 'white',
-    fontWeight: 'bold',
     fontSize: 18,
+    color: '#fff',
+    marginBottom: 30,
+    textAlign: 'center',
   },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  userDetails: {
+  fbButton: {
+    backgroundColor: '#1877F2',
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
-    flexWrap: 'wrap',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 12,
+    gap: 16,
+    marginBottom: 15,
   },
-  userType: {
+  testButton: {
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 30,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  fbText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  fbTextLoading: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  testButtonText: {
+    color: '#fff',
     fontSize: 14,
-    color: '#666',
-    marginRight: 10,
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    fontWeight: '600',
+    textAlign: 'center',
   },
-  userEmail: {
-    fontSize: 12,
-    color: '#999',
-  },
-  partnerCode: {
-    fontSize: 12,
-    color: '#4a6baf',
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  userPhone: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
-  },
-  userStatus: {
-    fontSize: 11,
-    color: '#666',
-  },
-  loginIndicator: {
-    paddingHorizontal: 8,
-  },
-  loginText: {
-    color: '#4a6baf',
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  quickLoginSection: {
-    padding: 16,
+  debugContainer: {
+    width: '100%',
     marginTop: 20,
   },
-  quickLoginTitle: {
+  debugTitle: {
+    color: '#ff8800',
+    fontWeight: 'bold',
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
+    marginBottom: 15,
     textAlign: 'center',
   },
-  quickLoginButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
+  debugBox: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
   },
-  quickButton: {
-    flex: 1,
-    padding: 14,
+  debugSubtitle: {
+    color: '#29b6f6',
+    fontWeight: 'bold',
+    marginBottom: 10,
+    fontSize: 14,
+  },
+  dataScrollView: {
+    maxHeight: 150,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 5,
+    padding: 10,
+  },
+  dataText: {
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: 'monospace',
+  },
+  stateText: {
+    color: '#fff',
+    fontSize: 12,
+    marginBottom: 5,
+  },
+  errorStateText: {
+    color: '#ff4444',
+    fontSize: 12,
+    marginBottom: 5,
+    fontWeight: 'bold',
+  },
+  troubleshootBox: {
+    backgroundColor: 'rgba(255, 87, 34, 0.2)',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#ff5722',
+  },
+  troubleshootTitle: {
+    color: '#ff5722',
+    fontWeight: 'bold',
+    marginBottom: 10,
+    fontSize: 14,
+  },
+  troubleshootText: {
+    color: '#fff',
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  troubleshootCode: {
+    color: '#ffcc80',
+    fontSize: 10,
+    fontFamily: 'monospace',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    padding: 5,
+    borderRadius: 4,
+    marginVertical: 5,
+  },
+  clearButton: {
+    backgroundColor: '#757575',
+    padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
+    marginTop: 10,
   },
-  adminButton: {
-    backgroundColor: '#dc3545',
-  },
-  partnerButton: {
-    backgroundColor: '#4a6baf',
-  },
-  shopButton: {
-    backgroundColor: '#28a745',
-  },
-  quickButtonText: {
-    color: 'white',
-    fontWeight: '500',
+  clearButtonText: {
+    color: '#fff',
     fontSize: 14,
-  },
-  footer: {
-    alignItems: 'center',
-    padding: 20,
-    marginTop: 20,
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#999',
-  },
-  footerVersion: {
-    fontSize: 12,
-    color: '#ccc',
-    marginTop: 4,
+    fontWeight: '600',
   },
 });
-
-export default LoginScreen;

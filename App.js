@@ -1,36 +1,22 @@
-// App.js - UPDATED FOR REACT NAVIGATION v7
+// App.js - WITH DEEP LINKING SUPPORT FOR EXISTING LOGINSCREEN
 import 'react-native-gesture-handler';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
-// import Icon from 'react-native-vector-icons/MaterialIcons';
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Linking from 'expo-linking'; // ADD THIS IMPORT
 
-// Import Screens
-import LoginScreen from './src/screens/LoginScreen';
-import UserTypeSelectionScreen from './src/screens/UserTypeSelectionScreen';
-import PartnerRegisterScreen from './src/screens/PartnerRegisterScreen';
-import PartnerDashboard from './src/screens/PartnerDashboard';
-import ShopRegisterScreen from './src/screens/ShopRegisterScreen';
-import CustomerDashboard from './src/screens/CustomerDashboard';
-import AdminDashboard from './src/screens/AdminDashboard';
-import ManageShops from './src/screens/ManageShops';
-import LoadingScreen from './src/screens/LoadingScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
-import ShopDashboard from './src/screens/ShopDashboard';
-import AdminQuestTemplates from './src/screens/AdminQuestTemplates';
-import ShopCreateQuest from './src/screens/ShopCreateQuest';
-import QuestDetails from './src/screens/QuestDetails';
+// Import screens
 import LandingPage from './src/screens/LandingPage';
-import RegionQuestsScreen from './src/screens/RegionQuestsScreen';
-import ShopQuestsScreen from './src/screens/ShopQuestsScreen';
-import UserQuestsScreen from './src/screens/UserQuestsScreen';
+import LoginScreen from './src/screens/LoginScreen';
 import ExploreScreen from './src/screens/ExploreScreen';
 import QuestScreen from './src/screens/QuestScreen';
 import WalletScreen from './src/screens/WalletScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
+import WebCallbackScreen from './src/screens/WebCallbackScreen'; // IMPORT FOR DEEP LINKING
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -38,24 +24,39 @@ const Tab = createBottomTabNavigator();
 // Bottom Tab Navigator
 function MainTabs() {
   const { user } = useAuth();
-  
+
   const getDashboardScreen = () => {
     if (!user) return DashboardScreen;
-    
-    switch (user.userType) {
-      case 'admin': return AdminDashboard;
-      case 'partner': return PartnerDashboard;
-      case 'shop': return ShopDashboard;
-      case 'customer': return CustomerDashboard;
-      default: return DashboardScreen;
-    }
+
+    return DashboardScreen;
   };
 
   const DashboardComponent = getDashboardScreen();
 
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+
+          if (route.name === 'HomeTab') {
+            iconName = 'home';
+          } else if (route.name === 'ExploreTab') {
+            iconName = 'search';
+          } else if (route.name === 'DashboardTab') {
+            iconName = 'dashboard';
+          } else if (route.name === 'QuestTab') {
+            iconName = 'assignment';
+          } else if (route.name === 'WalletTab') {
+            iconName = 'account-balance-wallet';
+          }
+
+          return <MaterialIcons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#4a6baf',
+        tabBarInactiveTintColor: '#666',
+        headerShown: false,
+        tabBarShowLabel: true,
         tabBarStyle: {
           backgroundColor: '#ffffff',
           borderTopWidth: 1,
@@ -64,62 +65,43 @@ function MainTabs() {
           paddingBottom: 8,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: '#4a6baf',
-        tabBarInactiveTintColor: '#666',
-        headerShown: false,
-        tabBarShowLabel: false,
-      }}
+      })}
     >
-      <Tab.Screen 
-        name="HomeTab" 
+      <Tab.Screen
+        name="HomeTab"
         component={LandingPage}
         options={{
           tabBarLabel: 'หน้าหลัก',
-          tabBarIcon: ({ color, size }) => (
-  <MaterialIcons name="home" size={size} color={color} />
-),
         }}
       />
-      
-      <Tab.Screen 
-        name="ExploreTab" 
+
+      <Tab.Screen
+        name="ExploreTab"
         component={ExploreScreen}
         options={{
           tabBarLabel: 'ค้นหา',
-          tabBarIcon: ({ color, size }) => (
-  <MaterialIcons name="search" size={size} color={color} />
-),
         }}
-      />      
-      <Tab.Screen 
-        name="DashboardTab" 
+      />
+      <Tab.Screen
+        name="DashboardTab"
         component={DashboardComponent}
         options={{
           tabBarLabel: 'แดชบอร์ด',
-          tabBarIcon: ({ color, size }) => (
-  <MaterialIcons name="dashboard" size={size} color={color} />
-),
         }}
       />
-      
-      <Tab.Screen 
-        name="QuestTab" 
+
+      <Tab.Screen
+        name="QuestTab"
         component={QuestScreen}
         options={{
           tabBarLabel: 'เควส',
-          tabBarIcon: ({ color, size }) => (
-  <MaterialIcons name="assignment" size={size} color={color} />
-),
         }}
-      />      
-      <Tab.Screen 
-        name="WalletTab" 
+      />
+      <Tab.Screen
+        name="WalletTab"
         component={WalletScreen}
         options={{
-          tabBarLabel: 'กระเป๋า',         
-          tabBarIcon: ({ color, size }) => (
-  <MaterialIcons name="account-balance-wallet" size={size} color={color} />
-),
+          tabBarLabel: 'กระเป๋า',
         }}
       />
     </Tab.Navigator>
@@ -127,12 +109,39 @@ function MainTabs() {
 }
 
 function AppNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading, setUser, setLoading } = useAuth();
 
-  console.log('🔐 Current user:', user ? `${user.name} (${user.userType})` : 'Not logged in');
+  // Check if user is logged in on app start
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const token = await AsyncStorage.getItem('authToken');
+        const userData = await AsyncStorage.getItem('userData');
+
+        if (token && userData) {
+          setUser(JSON.parse(userData));
+        }
+      } catch (error) {
+        console.error('Error checking login status:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  console.log('AppNavigator - User:', user ? 'Logged in' : 'Not logged in');
+  console.log('AppNavigator - Loading:', loading);
 
   if (loading) {
-    return <LoadingScreen />;
+    const { View, Text, ActivityIndicator } = require('react-native');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#4a6baf" />
+        <Text style={{ marginTop: 10 }}>กำลังโหลด...</Text>
+      </View>
+    );
   }
 
   return (
@@ -147,98 +156,130 @@ function AppNavigator() {
         },
       }}
     >
-      {/* Always show tabs for main navigation */}
-      <Stack.Screen 
-        name="MainTabs" 
+      {/* Always show MainTabs first (contains LandingPage as HomeTab) */}
+      <Stack.Screen
+        name="MainTabs"
         component={MainTabs}
         options={{ headerShown: false }}
       />
-      
-      {!user ? (
-        // Not logged in
-        <Stack.Group>
-          <Stack.Screen 
-            name="Login" 
-            component={LoginScreen}
-            options={{ 
-              title: 'เข้าสู่ระบบ',
-              headerShown: true 
-            }}
-          />
-          <Stack.Screen 
-            name="PartnerRegister" 
-            component={PartnerRegisterScreen}
-            options={{ title: 'ลงทะเบียนพาร์ทเนอร์' }}
-          />
-        </Stack.Group>
-      ) : user.userType === null ? (
-        // Haven't selected user type
-        <Stack.Screen 
-          name="UserTypeSelection" 
-          component={UserTypeSelectionScreen}
-          options={{ headerShown: false }}
-        />
-      ) : (
-        // Logged in - Additional screens
-        <Stack.Group>
-          {/* Common Screens */}
-          <Stack.Screen 
-            name="Profile" 
-            component={ProfileScreen}
-            options={{ title: 'โปรไฟล์' }}
-          />
-        </Stack.Group>
-      )}
-      
-      {/* Common Screens accessible to everyone */}
-      <Stack.Group>
-        <Stack.Screen 
-          name="RegionQuests" 
-          component={RegionQuestsScreen}
-          options={({ route }) => ({ 
-            title: `ภาค${route.params.region}`,
-            headerShown: true 
-          })}
-        />
-        <Stack.Screen 
-          name="ShopQuests" 
-          component={ShopQuestsScreen}
-          options={{ title: 'เควสร้านค้า' }}
-        />
-        <Stack.Screen 
-          name="UserQuests" 
-          component={UserQuestsScreen}
-          options={{ title: 'เควสของฉัน' }}
-        />
-        <Stack.Screen
-          name="QuestDetails"
-          component={QuestDetails}
-          options={{ title: 'รายละเอียดเควส' }}
-        />
-        <Stack.Screen 
-          name="ShopCreateQuest" 
-          component={ShopCreateQuest}
-          options={{ title: 'สร้างเควสใหม่' }}
-        />
-        <Stack.Screen 
-          name="AdminQuestTemplates" 
-          component={AdminQuestTemplates}
-          options={{ title: 'จัดการเทมเพลตเควส' }}
-        />
-        <Stack.Screen 
-          name="ManageShops" 
-          component={ManageShops}
-          options={{ title: 'จัดการร้านค้า' }}
-        />
-      </Stack.Group>
+
+      {/* Login screen - accessible from LandingPage via navigation */}
+      <Stack.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{
+          title: 'เข้าสู่ระบบ',
+          headerShown: true
+        }}
+      />
+
+      {/* WebCallback screen for handling deep links from Facebook */}
+      <Stack.Screen
+        name="WebCallback"
+        component={WebCallbackScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }
 
 export default function App() {
+  const navigationRef = useRef();
+
+  // 🔥 DEEP LINKING HANDLER - CRITICAL FOR FACEBOOK OAUTH
+  useEffect(() => {
+    console.log('🔗 Setting up deep link listeners...');
+
+    const handleDeepLink = async (event) => {
+      const { url } = event;
+      console.log('🔗 Deep link received:', url);
+
+      if (url) {
+        // Check if this is a Facebook OAuth callback
+        // Your LoginScreen uses expo-auth-session which creates URIs like:
+        // exp://127.0.0.1:19000/--/expo-auth-session
+        // https://auth.expo.io/@anonymous/thaiquestify
+        if (url.includes('expo-auth-session') ||
+          url.includes('auth.expo.io') ||
+          url.includes('code=') ||
+          url.includes('facebook')) {
+
+          console.log('✅ Facebook OAuth callback detected!');
+
+          // Save the URL for WebCallbackScreen to process
+          await AsyncStorage.setItem('facebook_callback_url', url);
+
+          // Wait a moment for navigation to be ready, then navigate
+          setTimeout(() => {
+            if (navigationRef.current) {
+              console.log('🔄 Navigating to WebCallback screen with URL:', url);
+              navigationRef.current.navigate('WebCallback', { url });
+            } else {
+              console.log('⚠️ Navigation ref not ready yet');
+            }
+          }, 1000);
+        }
+      }
+    };
+
+    // Listen for incoming deep links (app already open)
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Check if app was launched from a deep link (app was closed)
+    Linking.getInitialURL().then(url => {
+      if (url) {
+        console.log('📱 App launched with URL:', url);
+        handleDeepLink({ url });
+      }
+    }).catch(err => {
+      console.error('Error getting initial URL:', err);
+    });
+
+    // Cleanup
+    return () => {
+      if (subscription && subscription.remove) {
+        subscription.remove();
+      }
+    };
+  }, []);
+
+  // 🔥 LINKING CONFIGURATION for NavigationContainer
+  const linking = {
+    prefixes: [
+      'thaiquestify://',
+      'https://auth.expo.io/@anonymous/thaiquestify', // ADD THIS
+      'exp://',
+    ],
+    config: {
+      screens: {
+        WebCallback: {
+          path: 'expo-auth-session',
+          parse: {
+            url: (url) => url,
+          },
+        },
+        Login: 'login',
+        MainTabs: {
+          screens: {
+            HomeTab: 'home',
+            ExploreTab: 'explore',
+            DashboardTab: 'dashboard',
+            QuestTab: 'quests',
+            WalletTab: 'wallet',
+          },
+        },
+      },
+    },
+  };
+
   return (
     <AuthProvider>
-      <NavigationContainer>
+      <NavigationContainer
+        ref={navigationRef}
+        linking={linking} // ADD LINKING CONFIG
+        onReady={() => console.log('✅ Navigation is ready')}
+        onStateChange={(state) => console.log('🔄 Navigation state changed')}
+      >
         <AppNavigator />
       </NavigationContainer>
     </AuthProvider>

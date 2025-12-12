@@ -1,37 +1,49 @@
 {
   "expo": {
-    "name": "thaiquestify",
+    "name": "ThaiQuestify",
     "slug": "thaiquestify",
-    "owner": "suwit",
     "scheme": "thaiquestify",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "assetBundlePatterns": [
-      "**/*"
+    "platforms": [
+      "android"
     ],
-    "plugins": [
-      "expo-web-browser"
-    ],
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "host.exp.exponent"
-    },
     "android": {
-      "package": "host.exp.exponent",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
-      }
+      "package": "com.munmunback.thaiquestify",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "https",
+              "host": "thaiquestify.com",
+              "pathPrefix": "/auth/callback"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "thaiquestify",
+              "host": "auth"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "extra": {
+      "eas": {
+        "projectId": "00a0158d-1068-4c25-9906-c32706640ba7"
+      }
     }
   }
 }

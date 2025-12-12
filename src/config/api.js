@@ -22,7 +22,7 @@
 
 // src/config/api.js
 export const API_CONFIG = {
-  BASE_URL: 'http://192.168.1.40:5000/api',
+  BASE_URL: 'http://34.72.174.29:5000/api',
   USE_MOCK_API: false, // เปลี่ยนเป็น false เพื่อใช้ real API
 };
 

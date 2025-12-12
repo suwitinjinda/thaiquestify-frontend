@@ -1,12 +1,12 @@
 // ProfileScreen.js - ENHANCED BEAUTIFUL VERSION
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Image, 
-  Alert, 
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Alert,
   ScrollView,
   ActivityIndicator,
   StatusBar
@@ -37,14 +37,14 @@ const ProfileScreen = ({ navigation, route }) => {
       });
       return;
     }
-    
+
     // Simulate loading for better UX
     const timer = setTimeout(() => {
       setLoading(false);
       // ใน production ควรดึงข้อมูลสถิติจริงจาก API
       loadUserStats();
     }, 800);
-    
+
     return () => clearTimeout(timer);
   }, [user, navigation]);
 
@@ -87,69 +87,43 @@ const ProfileScreen = ({ navigation, route }) => {
     }
   };
 
-  // // Navigation functions
-  // const navigateToShopDashboard = () => {
-  //   console.log('🏪 Navigating to Shop Dashboard');
-  //   navigation.navigate('ShopDashboard');
-  // };
-
-  // const navigateToPartnerDashboard = () => {
-  //   console.log('🤝 Navigating to Partner Dashboard');
-  //   navigation.navigate('PartnerDashboard');
-  // };
-
-  // const navigateToAdminDashboard = () => {
-  //   console.log('👑 Navigating to Admin Dashboard');
-  //   navigation.navigate('AdminDashboard');
-  // };
-
-  // const navigateToPartnerRegister = () => {
-  //   console.log('📝 Navigating to Partner Register');
-  //   navigation.navigate('PartnerRegister');
-  // };
-
-  // const navigateToUserQuests = () => {
-  //   console.log('🎯 Navigating to User Quests');
-  //   navigation.navigate('UserQuests');
-  // };
-
   // In ProfileScreen.js - Update the navigation functions
-const navigateToShopDashboard = () => {
-  console.log('🏪 Navigating to Shop Dashboard');
-  // Use navigation.navigate to MainTabs, then DashboardTab
-  navigation.navigate('MainTabs', { 
-    screen: 'DashboardTab',
-    params: { userType: 'shop' }
-  });
-};
+  const navigateToShopDashboard = () => {
+    console.log('🏪 Navigating to Shop Dashboard');
+    // Use navigation.navigate to MainTabs, then DashboardTab
+    navigation.navigate('MainTabs', {
+      screen: 'DashboardTab',
+      params: { userType: 'shop' }
+    });
+  };
 
-const navigateToPartnerDashboard = () => {
-  console.log('🤝 Navigating to Partner Dashboard');
-  // Use navigation.navigate to MainTabs, then DashboardTab
-  navigation.navigate('MainTabs', { 
-    screen: 'DashboardTab',
-    params: { userType: 'partner' }
-  });
-};
+  const navigateToPartnerDashboard = () => {
+    console.log('🤝 Navigating to Partner Dashboard');
+    // Use navigation.navigate to MainTabs, then DashboardTab
+    navigation.navigate('MainTabs', {
+      screen: 'DashboardTab',
+      params: { userType: 'partner' }
+    });
+  };
 
-const navigateToAdminDashboard = () => {
-  console.log('👑 Navigating to Admin Dashboard');
-  // Use navigation.navigate to MainTabs, then DashboardTab
-  navigation.navigate('MainTabs', { 
-    screen: 'DashboardTab',
-    params: { userType: 'admin' }
-  });
-};
+  const navigateToAdminDashboard = () => {
+    console.log('👑 Navigating to Admin Dashboard');
+    // Use navigation.navigate to MainTabs, then DashboardTab
+    navigation.navigate('MainTabs', {
+      screen: 'DashboardTab',
+      params: { userType: 'admin' }
+    });
+  };
 
-const navigateToPartnerRegister = () => {
-  console.log('📝 Navigating to Partner Register');
-  navigation.navigate('PartnerRegister');
-};
+  const navigateToPartnerRegister = () => {
+    console.log('📝 Navigating to Partner Register');
+    navigation.navigate('PartnerRegister');
+  };
 
-const navigateToUserQuests = () => {
-  console.log('🎯 Navigating to User Quests');
-  navigation.navigate('UserQuests');
-};
+  const navigateToUserQuests = () => {
+    console.log('🎯 Navigating to User Quests');
+    navigation.navigate('UserQuests');
+  };
 
   // Show loading while checking auth
   if (!user) {
@@ -173,44 +147,44 @@ const navigateToUserQuests = () => {
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#4a6baf" barStyle="light-content" />
-      
+
       {/* Header Section with Gradient */}
       <LinearGradient
-  colors={['#4a6baf', '#6b8cce']}
-  style={styles.horizontalHeader}
->
-  <View style={styles.horizontalContent}>
-    <View style={styles.avatarWithBadge}>
-      <Image 
-        source={{ 
-          uri: user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=ffffff&color=4a6baf&size=70`
-        }} 
-        style={styles.horizontalAvatar}
-      />
-      <View style={[styles.floatingBadge, { backgroundColor: getRoleBadgeColor(user.userType) }]}>
-        <Icon name={getRoleIcon(user.userType)} size={10} color="white" />
-      </View>
-    </View>
-    
-    <View style={styles.horizontalInfo}>
-      <Text style={styles.horizontalName} numberOfLines={1}>{user.name}</Text>
-      <Text style={styles.horizontalEmail} numberOfLines={1}>{user.email}</Text>
-      <View style={styles.horizontalMeta}>
-        {user.phone && (
-          <View style={styles.compactPhone}>
-            <Icon name="phone" size={10} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.compactPhoneText}>{user.phone}</Text>
+        colors={['#4a6baf', '#6b8cce']}
+        style={styles.horizontalHeader}
+      >
+        <View style={styles.horizontalContent}>
+          <View style={styles.avatarWithBadge}>
+            <Image
+              source={{
+                uri: user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=ffffff&color=4a6baf&size=70`
+              }}
+              style={styles.horizontalAvatar}
+            />
+            <View style={[styles.floatingBadge, { backgroundColor: getRoleBadgeColor(user.userType) }]}>
+              <Icon name={getRoleIcon(user.userType)} size={10} color="white" />
+            </View>
           </View>
-        )}
-        <Text style={styles.compactMemberSince}>
-          {user.createdAt ? new Date(user.createdAt).toLocaleDateString('th-TH') : 'ใหม่'}
-        </Text>
-      </View>
-    </View>
-  </View>
-</LinearGradient>
 
-      <ScrollView 
+          <View style={styles.horizontalInfo}>
+            <Text style={styles.horizontalName} numberOfLines={1}>{user.name}</Text>
+            <Text style={styles.horizontalEmail} numberOfLines={1}>{user.email}</Text>
+            <View style={styles.horizontalMeta}>
+              {user.phone && (
+                <View style={styles.compactPhone}>
+                  <Icon name="phone" size={10} color="rgba(255,255,255,0.8)" />
+                  <Text style={styles.compactPhoneText}>{user.phone}</Text>
+                </View>
+              )}
+              <Text style={styles.compactMemberSince}>
+                {user.createdAt ? new Date(user.createdAt).toLocaleDateString('th-TH') : 'ใหม่'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -218,33 +192,33 @@ const navigateToUserQuests = () => {
         {/* Statistics Section */}
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>📊 สถิติของฉัน</Text>
-          
+
           <View style={styles.statsGrid}>
             {/* User Type Specific Stats */}
             {user.userType === 'shop' && (
               <>
-                <StatCard 
-                  icon="store" 
-                  value={userStats.totalShops} 
-                  label="ร้านค้า" 
+                <StatCard
+                  icon="store"
+                  value={userStats.totalShops}
+                  label="ร้านค้า"
                   color="#45b7d1"
                 />
-                <StatCard 
-                  icon="assignment-turned-in" 
-                  value={userStats.activeQuests} 
-                  label="เควสที่เปิด" 
+                <StatCard
+                  icon="assignment-turned-in"
+                  value={userStats.activeQuests}
+                  label="เควสที่เปิด"
                   color="#4ecdc4"
                 />
-                <StatCard 
-                  icon="trending-up" 
-                  value={userStats.completedQuests} 
-                  label="เควสสำเร็จ" 
+                <StatCard
+                  icon="trending-up"
+                  value={userStats.completedQuests}
+                  label="เควสสำเร็จ"
                   color="#96ceb4"
                 />
-                <StatCard 
-                  icon="attach-money" 
-                  value={userStats.totalPoints} 
-                  label="คะแนน" 
+                <StatCard
+                  icon="attach-money"
+                  value={userStats.totalPoints}
+                  label="คะแนน"
                   color="#ffb347"
                 />
               </>
@@ -252,28 +226,28 @@ const navigateToUserQuests = () => {
 
             {user.userType === 'partner' && (
               <>
-                <StatCard 
-                  icon="business-center" 
-                  value={userStats.totalShops} 
-                  label="ร้านค้าในเครือ" 
+                <StatCard
+                  icon="business-center"
+                  value={userStats.totalShops}
+                  label="ร้านค้าในเครือ"
                   color="#4ecdc4"
                 />
-                <StatCard 
-                  icon="check-circle" 
-                  value={Math.floor(userStats.totalShops * 0.8)} 
-                  label="ร้านที่เปิด" 
+                <StatCard
+                  icon="check-circle"
+                  value={Math.floor(userStats.totalShops * 0.8)}
+                  label="ร้านที่เปิด"
                   color="#96ceb4"
                 />
-                <StatCard 
-                  icon="trending-up" 
-                  value={userStats.completedQuests} 
-                  label="เควสทั้งหมด" 
+                <StatCard
+                  icon="trending-up"
+                  value={userStats.completedQuests}
+                  label="เควสทั้งหมด"
                   color="#ffb347"
                 />
-                <StatCard 
-                  icon="show-chart" 
-                  value="ดีมาก" 
-                  label="ประสิทธิภาพ" 
+                <StatCard
+                  icon="show-chart"
+                  value="ดีมาก"
+                  label="ประสิทธิภาพ"
                   color="#45b7d1"
                 />
               </>
@@ -281,28 +255,28 @@ const navigateToUserQuests = () => {
 
             {user.userType === 'admin' && (
               <>
-                <StatCard 
-                  icon="admin-panel-settings" 
-                  value="ผู้ดูแลระบบ" 
-                  label="บทบาท" 
+                <StatCard
+                  icon="admin-panel-settings"
+                  value="ผู้ดูแลระบบ"
+                  label="บทบาท"
                   color="#ff6b6b"
                 />
-                <StatCard 
-                  icon="people" 
-                  value="1,234" 
-                  label="ผู้ใช้ทั้งหมด" 
+                <StatCard
+                  icon="people"
+                  value="1,234"
+                  label="ผู้ใช้ทั้งหมด"
                   color="#4ecdc4"
                 />
-                <StatCard 
-                  icon="store" 
-                  value="567" 
-                  label="ร้านค้า" 
+                <StatCard
+                  icon="store"
+                  value="567"
+                  label="ร้านค้า"
                   color="#96ceb4"
                 />
-                <StatCard 
-                  icon="security" 
-                  value="เต็ม" 
-                  label="สิทธิ์การเข้าถึง" 
+                <StatCard
+                  icon="security"
+                  value="เต็ม"
+                  label="สิทธิ์การเข้าถึง"
                   color="#ffb347"
                 />
               </>
@@ -311,28 +285,28 @@ const navigateToUserQuests = () => {
             {/* Customer Stats */}
             {user.userType === 'customer' && (
               <>
-                <StatCard 
-                  icon="emoji-events" 
-                  value={userStats.completedQuests} 
-                  label="เควสสำเร็จ" 
+                <StatCard
+                  icon="emoji-events"
+                  value={userStats.completedQuests}
+                  label="เควสสำเร็จ"
                   color="#96ceb4"
                 />
-                <StatCard 
-                  icon="star" 
-                  value={userStats.totalPoints} 
-                  label="คะแนนสะสม" 
+                <StatCard
+                  icon="star"
+                  value={userStats.totalPoints}
+                  label="คะแนนสะสม"
                   color="#ffb347"
                 />
-                <StatCard 
-                  icon="card-giftcard" 
-                  value={userStats.rewardsClaimed} 
-                  label="รางวัลที่ได้รับ" 
+                <StatCard
+                  icon="card-giftcard"
+                  value={userStats.rewardsClaimed}
+                  label="รางวัลที่ได้รับ"
                   color="#4ecdc4"
                 />
-                <StatCard 
-                  icon="trending-up" 
-                  value="ใหม่" 
-                  label="สถานะ" 
+                <StatCard
+                  icon="trending-up"
+                  value="ใหม่"
+                  label="สถานะ"
                   color="#45b7d1"
                 />
               </>
@@ -343,19 +317,19 @@ const navigateToUserQuests = () => {
         {/* Quick Actions Section */}
         <View style={styles.quickActionsSection}>
           <Text style={styles.sectionTitle}>🚀 การดำเนินการด่วน</Text>
-          
+
           <View style={styles.quickActionsGrid}>
             {/* Common actions for all users */}
-            <QuickActionButton 
-              icon="edit" 
-              title="แก้ไขโปรไฟล์" 
+            <QuickActionButton
+              icon="edit"
+              title="แก้ไขโปรไฟล์"
               onPress={() => navigation.navigate('EditProfile')}
               color="#4a6baf"
             />
-            
-            <QuickActionButton 
-              icon="settings" 
-              title="การตั้งค่า" 
+
+            <QuickActionButton
+              icon="settings"
+              title="การตั้งค่า"
               onPress={() => navigation.navigate('Settings')}
               color="#6c757d"
             />
@@ -363,16 +337,16 @@ const navigateToUserQuests = () => {
             {/* Customer specific actions */}
             {user.userType === 'customer' && (
               <>
-                <QuickActionButton 
-                  icon="assignment" 
-                  title="เควสของฉัน" 
+                <QuickActionButton
+                  icon="assignment"
+                  title="เควสของฉัน"
                   onPress={navigateToUserQuests}
                   color="#28a745"
                 />
-                
-                <QuickActionButton 
-                  icon="business-center" 
-                  title="สมัครเป็นพาร์ทเนอร์" 
+
+                <QuickActionButton
+                  icon="business-center"
+                  title="สมัครเป็นพาร์ทเนอร์"
                   onPress={navigateToPartnerRegister}
                   color="#ff6b6b"
                 />
@@ -382,16 +356,16 @@ const navigateToUserQuests = () => {
             {/* Shop owner actions */}
             {user.userType === 'shop' && (
               <>
-                <QuickActionButton 
-                  icon="dashboard" 
-                  title="แดชบอร์ด" 
+                <QuickActionButton
+                  icon="dashboard"
+                  title="แดชบอร์ด"
                   onPress={navigateToShopDashboard}
                   color="#45b7d1"
                 />
-                
-                <QuickActionButton 
-                  icon="add-task" 
-                  title="สร้างเควส" 
+
+                <QuickActionButton
+                  icon="add-task"
+                  title="สร้างเควส"
                   onPress={() => navigation.navigate('ShopCreateQuest')}
                   color="#28a745"
                 />
@@ -400,9 +374,9 @@ const navigateToUserQuests = () => {
 
             {/* Partner actions */}
             {user.userType === 'partner' && (
-              <QuickActionButton 
-                icon="dashboard" 
-                title="แดชบอร์ดพาร์ทเนอร์" 
+              <QuickActionButton
+                icon="dashboard"
+                title="แดชบอร์ดพาร์ทเนอร์"
                 onPress={navigateToPartnerDashboard}
                 color="#4ecdc4"
               />
@@ -410,9 +384,9 @@ const navigateToUserQuests = () => {
 
             {/* Admin actions */}
             {user.userType === 'admin' && (
-              <QuickActionButton 
-                icon="dashboard" 
-                title="แดชบอร์ดแอดมิน" 
+              <QuickActionButton
+                icon="dashboard"
+                title="แดชบอร์ดแอดมิน"
                 onPress={navigateToAdminDashboard}
                 color="#ff6b6b"
               />
@@ -423,49 +397,49 @@ const navigateToUserQuests = () => {
         {/* Menu Section */}
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>⚙️ การตั้งค่าบัญชี</Text>
-          
-          <MenuButton 
-            icon="person" 
-            title="ข้อมูลส่วนตัว" 
+
+          <MenuButton
+            icon="person"
+            title="ข้อมูลส่วนตัว"
             onPress={() => navigation.navigate('EditProfile')}
           />
-          
-          <MenuButton 
-            icon="notifications" 
-            title="การแจ้งเตือน" 
-            onPress={() => {}}
+
+          <MenuButton
+            icon="notifications"
+            title="การแจ้งเตือน"
+            onPress={() => { }}
           />
-          
-          <MenuButton 
-            icon="security" 
-            title="ความปลอดภัย" 
-            onPress={() => {}}
+
+          <MenuButton
+            icon="security"
+            title="ความปลอดภัย"
+            onPress={() => { }}
           />
-          
-          <MenuButton 
-            icon="help" 
-            title="ช่วยเหลือและสนับสนุน" 
-            onPress={() => {}}
+
+          <MenuButton
+            icon="help"
+            title="ช่วยเหลือและสนับสนุน"
+            onPress={() => { }}
           />
-          
-          <MenuButton 
-            icon="info" 
-            title="เกี่ยวกับแอป" 
-            onPress={() => {}}
+
+          <MenuButton
+            icon="info"
+            title="เกี่ยวกับแอป"
+            onPress={() => { }}
           />
 
           {/* Customer specific menu */}
           {user.userType === 'customer' && (
             <>
-              <MenuButton 
-                icon="assignment" 
-                title="เควสของฉัน" 
+              <MenuButton
+                icon="assignment"
+                title="เควสของฉัน"
                 onPress={navigateToUserQuests}
               />
-              
-              <MenuButton 
-                icon="business-center" 
-                title="สมัครเป็นพาร์ทเนอร์" 
+
+              <MenuButton
+                icon="business-center"
+                title="สมัครเป็นพาร์ทเนอร์"
                 onPress={navigateToPartnerRegister}
               />
             </>
@@ -473,33 +447,33 @@ const navigateToUserQuests = () => {
 
           {/* Shop owner specific menu */}
           {user.userType === 'shop' && (
-            <MenuButton 
-              icon="dashboard" 
-              title="แดชบอร์ดร้านค้า" 
+            <MenuButton
+              icon="dashboard"
+              title="แดชบอร์ดร้านค้า"
               onPress={navigateToShopDashboard}
             />
           )}
 
           {/* Partner specific menu */}
           {user.userType === 'partner' && (
-            <MenuButton 
-              icon="dashboard" 
-              title="แดชบอร์ดพาร์ทเนอร์" 
+            <MenuButton
+              icon="dashboard"
+              title="แดชบอร์ดพาร์ทเนอร์"
               onPress={navigateToPartnerDashboard}
             />
           )}
 
           {/* Admin specific menu */}
           {user.userType === 'admin' && (
-            <MenuButton 
-              icon="dashboard" 
-              title="แดชบอร์ดแอดมิน" 
+            <MenuButton
+              icon="dashboard"
+              title="แดชบอร์ดแอดมิน"
               onPress={navigateToAdminDashboard}
             />
           )}
 
           {/* Logout Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.logoutButton}
             onPress={handleLogout}
           >
