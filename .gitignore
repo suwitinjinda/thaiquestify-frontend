@@ -63,3 +63,5 @@ Thumbs.db
 
 # Dependencies
 node_modules/
+*.apk
+commandlinetools-*.zip
