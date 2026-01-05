@@ -24,7 +24,13 @@ WebBrowser.maybeCompleteAuthSession();
 // ======================= CONFIG =======================
 const API_URL = 'https://thaiquestify.com/api';
 const FACEBOOK_APP_ID = '1479841916431052';
-const redirectUri = 'https://thaiquestify.com/auth/callback';
+const FACEBOOK_REDIRECT_URI = 'https://thaiquestify.com/auth/callback';
+
+// TikTok (Login Kit / OAuth2 Authorization Code)
+// NOTE: TikTok uses "Client Key" (public) + "Client Secret" (server-side).
+// Recommended: send the returned "code" to your backend, and let backend exchange it securely.
+const TIKTOK_CLIENT_KEY = 'YOUR_TIKTOK_CLIENT_KEY';
+const TIKTOK_REDIRECT_URI = 'https://thaiquestify.com/auth/tiktok/callback';
 
 const discovery = {
   authorizationEndpoint: 'https://www.facebook.com/v20.0/dialog/oauth',
@@ -32,7 +38,7 @@ const discovery = {
 };
 
 console.log('=== FACEBOOK LOGIN CONFIG (FINAL) ===');
-console.log('✅ Redirect URI:', redirectUri);
+console.log('✅ Redirect URI:', FACEBOOK_REDIRECT_URI);
 console.log('✅ Platform:', Platform.OS);
 console.log('================================');
 
@@ -56,6 +62,7 @@ const getQueryParams = (url) => {
 // =====================================================
 export default function LoginScreen({ navigation }) {
   const [facebookLoading, setFacebookLoading] = useState(false);
+  const [tiktokLoading, setTikTokLoading] = useState(false);
   const [debugData, setDebugData] = useState({
     step1: null,
     step2: null,
@@ -105,6 +112,38 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  // TikTok: send authorization code to backend (backend exchanges code -> access_token)
+  const finalLoginWithTikTokCode = async (code) => {
+    console.log('🎵 Finalizing TikTok login with backend...');
+    try {
+      const loginRes = await fetch(`${API_URL}/auth/tiktok`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          code,
+          redirectUri: TIKTOK_REDIRECT_URI,
+        }),
+      });
+      const result = await loginRes.json();
+      addDebugInfo('finalResult', { url: `${API_URL}/auth/tiktok`, status: loginRes.status, response: result });
+
+      if (result.success) {
+        console.log('✅ TIKTOK LOGIN SUCCESSFUL!');
+        await AsyncStorage.setItem('authToken', result.token);
+        await AsyncStorage.setItem('userData', JSON.stringify(result.user));
+        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      } else {
+        console.error('❌ TikTok final login failed:', result);
+        Alert.alert('เข้าสู่ระบบล้มเหลว', result.message || 'ไม่สามารถเข้าสู่ระบบด้วย TikTok ได้');
+        setTikTokLoading(false);
+      }
+    } catch (err) {
+      console.error('❌ TikTok login error:', err);
+      Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถดำเนินการเข้าสู่ระบบด้วย TikTok ได้');
+      setTikTokLoading(false);
+    }
+  };
+
   // ขั้นตอน 1: ส่ง code ไป backend แลก access_token
   const exchangeCodeForToken = useCallback(async ({ code, state, redirectUri, discovery }) => {
     try {
@@ -135,7 +174,7 @@ export default function LoginScreen({ navigation }) {
   const [request, response, promptAsync] = useAuthRequest(
     {
       clientId: FACEBOOK_APP_ID,
-      redirectUri,
+      redirectUri: FACEBOOK_REDIRECT_URI,
       scopes: ['public_profile', 'email'],
       responseType: ResponseType.Code,
       extraParams: { display: 'popup' },
@@ -160,7 +199,7 @@ export default function LoginScreen({ navigation }) {
         exchangeCodeForToken({
           code,
           state: response.params.state,
-          redirectUri,
+          redirectUri: FACEBOOK_REDIRECT_URI,
           discovery,
           // request, // ไม่จำเป็นสำหรับ exchangeCodeForToken
         });
@@ -180,19 +219,25 @@ export default function LoginScreen({ navigation }) {
       if (url && url.includes('code=')) {
         console.log('🔗 [DEEP LINK] RECEIVED (App Running):', url);
 
-        // **FIX: ใช้ url แทน initialUrl**
+        const pathOnly = url.split('?')[0] || '';
         const urlParams = getQueryParams(url);
         const code = urlParams.code;
         const state = urlParams.state;
 
         if (code) {
-          console.log('✅ [DEEP LINK] Found Code! Initiating Exchange via direct link.');
-          exchangeCodeForToken({
-            code,
-            state,
-            redirectUri,
-            discovery,
-          });
+          // Decide provider based on callback path
+          if (pathOnly.includes('/auth/tiktok/callback')) {
+            console.log('🎵 [DEEP LINK] TikTok callback detected. Sending code to backend.');
+            finalLoginWithTikTokCode(code);
+          } else {
+            console.log('✅ [DEEP LINK] Found Code! Initiating Exchange via direct link.');
+            exchangeCodeForToken({
+              code,
+              state,
+              redirectUri: FACEBOOK_REDIRECT_URI,
+              discovery,
+            });
+          }
         }
       }
     };
@@ -202,13 +247,19 @@ export default function LoginScreen({ navigation }) {
       .then(initialUrl => {
         if (initialUrl && initialUrl.includes('code=')) {
           console.log('🔗 [DEEP LINK] RECEIVED (Initial URL):', initialUrl);
+          const pathOnly = (initialUrl.split('?')[0] || '');
           const urlParams = getQueryParams(initialUrl);
           const code = urlParams.code;
           const state = urlParams.state;
 
           if (code) {
-            console.log('✅ [DEEP LINK] Found Code! Initiating Exchange via initial link.');
-            exchangeCodeForToken({ code, state, redirectUri, discovery });
+            if (pathOnly.includes('/auth/tiktok/callback')) {
+              console.log('🎵 [DEEP LINK] TikTok callback detected (initial). Sending code to backend.');
+              finalLoginWithTikTokCode(code);
+            } else {
+              console.log('✅ [DEEP LINK] Found Code! Initiating Exchange via initial link.');
+              exchangeCodeForToken({ code, state, redirectUri: FACEBOOK_REDIRECT_URI, discovery });
+            }
           }
         }
       })
@@ -224,7 +275,7 @@ export default function LoginScreen({ navigation }) {
       subscription.remove();
     };
 
-  }, [response, exchangeCodeForToken, redirectUri, discovery]); // เพิ่ม dependencies ที่ถูกต้อง
+  }, [response, exchangeCodeForToken, discovery]); // เพิ่ม dependencies ที่ถูกต้อง
 
   // ... (ส่วนอื่นๆ ของ Component - handleFacebookLogin, testSimpleWebBrowser, formatDebugData)
 
@@ -276,6 +327,65 @@ export default function LoginScreen({ navigation }) {
         error.message || 'กรุณาลองอีกครั้ง'
       );
       setFacebookLoading(false);
+    }
+  };
+
+  const handleTikTokLogin = async () => {
+    console.log('🎵 Starting TikTok login...');
+
+    if (!TIKTOK_CLIENT_KEY || TIKTOK_CLIENT_KEY === 'YOUR_TIKTOK_CLIENT_KEY') {
+      Alert.alert('ต้องตั้งค่า TikTok', 'กรุณาใส่ TikTok Client Key ใน LoginScreen.js ก่อน');
+      return;
+    }
+
+    setTikTokLoading(true);
+    addDebugInfo('step1', {
+      message: 'Starting TikTok login process',
+      timestamp: new Date().toISOString(),
+      redirectUri: TIKTOK_REDIRECT_URI,
+    });
+
+    try {
+      const state = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const scope = encodeURIComponent('user.info.basic');
+
+      const authUrl =
+        `https://www.tiktok.com/v2/auth/authorize/` +
+        `?client_key=${encodeURIComponent(TIKTOK_CLIENT_KEY)}` +
+        `&redirect_uri=${encodeURIComponent(TIKTOK_REDIRECT_URI)}` +
+        `&response_type=code` +
+        `&scope=${scope}` +
+        `&state=${encodeURIComponent(state)}`;
+
+      console.log('🌐 Opening TikTok login...');
+      console.log('🌐 TikTok redirect URI:', TIKTOK_REDIRECT_URI);
+
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, TIKTOK_REDIRECT_URI, {
+        showTitle: false,
+        enableBarCollapsing: true,
+      });
+
+      console.log('🎵 TikTok WebBrowser result:', result?.type);
+
+      if (result?.type === 'success' && result.url) {
+        // If we get the URL here, parse it and continue (some devices return immediately)
+        const urlParams = getQueryParams(result.url);
+        const code = urlParams.code;
+        if (code) {
+          await finalLoginWithTikTokCode(code);
+          return;
+        }
+      }
+
+      // Otherwise, rely on the deep-link handler to catch the callback.
+      if (result?.type === 'dismiss' || result?.type === 'cancel') {
+        Alert.alert('ยกเลิก', 'การเข้าสู่ระบบด้วย TikTok ถูกยกเลิก');
+        setTikTokLoading(false);
+      }
+    } catch (error) {
+      console.error('❌ TikTok auth error:', error);
+      Alert.alert('เกิดข้อผิดพลาด', error.message || 'ไม่สามารถเปิด TikTok ได้');
+      setTikTokLoading(false);
     }
   };
 
@@ -367,6 +477,24 @@ export default function LoginScreen({ navigation }) {
                 <>
                   <IconFA name="facebook" size={24} color="#fff" />
                   <Text style={styles.fbText}>เข้าสู่ระบบด้วย Facebook</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tiktokButton, tiktokLoading && styles.buttonDisabled]}
+              onPress={handleTikTokLogin}
+              disabled={tiktokLoading}
+            >
+              {tiktokLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text style={styles.fbTextLoading}>กำลังดำเนินการ...</Text>
+                </View>
+              ) : (
+                <>
+                  <IconFA name="music" size={22} color="#fff" />
+                  <Text style={styles.fbText}>เข้าสู่ระบบด้วย TikTok</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -503,6 +631,17 @@ const styles = StyleSheet.create({
   },
   fbButton: {
     backgroundColor: '#1877F2',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 12,
+    gap: 16,
+    marginBottom: 15,
+  },
+  tiktokButton: {
+    backgroundColor: '#000000',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

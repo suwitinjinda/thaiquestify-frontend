@@ -247,6 +247,7 @@ export default function App() {
   const linking = {
     prefixes: [
       'thaiquestify://',
+      'https://thaiquestify.com',
       'https://auth.expo.io/@anonymous/thaiquestify', // ADD THIS
       'exp://',
     ],
