@@ -1,634 +1,746 @@
-// screens/LoginScreen.js - FINAL REVISED CODE
-
-import React, { useEffect, useState, useCallback } from 'react';
+// ====================================================================
+// LoginScreen.js - GOOGLE ONLY VERSION (จากโค้ดที่ใช้งานได้)
+// ====================================================================
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   Alert,
-  ActivityIndicator,
-  StatusBar,
+  Modal,
   ScrollView,
-  Linking, // Import Linking
-  Platform,
+  Image,
+  ActivityIndicator,
+  StyleSheet,
+  StatusBar,
+  Dimensions
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import IconFA from 'react-native-vector-icons/FontAwesome';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri, useAuthRequest, ResponseType, exchangeCodeAsync } from 'expo-auth-session';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Google from 'expo-auth-session/providers/google';
+import * as Linking from 'expo-linking';
+import { useAuth } from '../context/AuthContext';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
+import { makeRedirectUri } from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
 
-// ======================= CONFIG =======================
+const { width } = Dimensions.get('window');
 const API_URL = 'https://thaiquestify.com/api';
-const FACEBOOK_APP_ID = '1479841916431052';
-const redirectUri = 'https://thaiquestify.com/auth/callback';
+const REDIRECT_URI_GOOGLE = 'https://thaiquestify.com/auth/google/callback';
 
-const discovery = {
-  authorizationEndpoint: 'https://www.facebook.com/v20.0/dialog/oauth',
-  tokenEndpoint: 'https://graph.facebook.com/v20.0/oauth/access_token',
+const NATIVE_REDIRECT_URI = makeRedirectUri({
+  scheme: 'thaiquestify',
+  path: 'auth/google',
+});
+
+const getParams = (url) => {
+  try {
+    const urlObject = new URL(url);
+    return Object.fromEntries(urlObject.searchParams.entries());
+  } catch (e) {
+    console.error("Failed to parse URL:", e);
+    return {};
+  }
 };
 
-console.log('=== FACEBOOK LOGIN CONFIG (FINAL) ===');
-console.log('✅ Redirect URI:', redirectUri);
-console.log('✅ Platform:', Platform.OS);
-console.log('================================');
-
-// ฟังก์ชันสำหรับ Parse Query String ที่ปลอดภัยจาก Error 'URLSearchParams not implemented'
-const getQueryParams = (url) => {
-  // ดึง Query String (ส่วนที่อยู่หลัง ?)
-  const queryString = url.split('?')[1];
-  if (!queryString) return {};
-
-  // แปลง "key=value&key2=value2" เป็น Object { key: value, ... }
-  return queryString.split('&').reduce((params, param) => {
-    const parts = param.split('=');
-    if (parts.length === 2) {
-      // ใช้ decodeURIComponent เพื่อจัดการค่าที่มีการเข้ารหัส
-      params[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
-    }
-    return params;
-  }, {});
-};
-
-// =====================================================
 export default function LoginScreen({ navigation }) {
-  const [facebookLoading, setFacebookLoading] = useState(false);
-  const [debugData, setDebugData] = useState({
-    step1: null,
-    step2: null,
-    finalResult: null,
-    errors: []
+  const { signIn } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showUserInfo, setShowUserInfo] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [tempUser, setTempUser] = useState(null);
+
+  // 🔥 สำหรับ Google Login เท่านั้น
+  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
+    expoClientId: '502499639746-gre0812tf2nq1f72tq5j4knh3e4l2704.apps.googleusercontent.com',
+    webClientId: '502499639746-gre0812tf2nq1f72tq5j4knh3e4l2704.apps.googleusercontent.com',
+    androidClientId: '502499639746-gre0812tf2nq1f72tq5j4knh3e4l2704.apps.googleusercontent.com',
+    iosClientId: '502499639746-gre0812tf2nq1f72tq5j4knh3e4l2704.apps.googleusercontent.com',
+    redirectUri: REDIRECT_URI_GOOGLE,
+  }, {
+    useProxy: false,
+    returnUrl: NATIVE_REDIRECT_URI,
   });
 
-  // เพิ่ม debug info
-  const addDebugInfo = useCallback((step, data, isError = false) => {
-    console.log(`🔍 [${step}]`, data);
-    setDebugData(prev => ({
-      ...prev,
-      [step]: data,
-      ...(isError && {
-        errors: [...prev.errors, { step, data, timestamp: new Date().toISOString() }]
-      })
-    }));
-  }, []);
+  // ==================== GOOGLE LOGIN ====================
 
-  // ขั้นตอน 2: ส่ง access_token ไป login จริง
-  const finalLoginWithToken = async (accessToken) => {
-    console.log('🔐 Finalizing login...');
-    try {
-      const loginRes = await fetch(`${API_URL}/auth/facebook`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ token: accessToken }),
-      });
-      // ... (Logic การจัดการ Login/Navigation) ...
-      const result = await loginRes.json();
-      addDebugInfo('finalResult', { url: `${API_URL}/auth/facebook`, status: loginRes.status, response: result });
-
-      if (result.success) {
-        console.log('✅ LOGIN SUCCESSFUL!');
-        await AsyncStorage.setItem('authToken', result.token);
-        await AsyncStorage.setItem('userData', JSON.stringify(result.user));
-        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
-      } else {
-        console.error('❌ Final login failed:', result);
-        Alert.alert('เข้าสู่ระบบล้มเหลว', result.message || 'ไม่สามารถเข้าสู่ระบบได้');
-        setFacebookLoading(false);
-      }
-    } catch (err) {
-      console.error('❌ Login error:', err);
-      Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถดำเนินการเข้าสู่ระบบได้');
-      setFacebookLoading(false);
-    }
-  };
-
-  // ขั้นตอน 1: ส่ง code ไป backend แลก access_token
-  const exchangeCodeForToken = useCallback(async ({ code, state, redirectUri, discovery }) => {
-    try {
-      console.log('🔄 [CLIENT] Starting exchangeCodeAsync...');
-
-      const tokenResponse = await exchangeCodeAsync(
-        {
-          clientId: FACEBOOK_APP_ID,
-          code: code,
-          redirectUri: redirectUri,
-          extraParams: { state: state },
-        },
-        discovery,
-      );
-
-      console.log('✅ [CLIENT] Token Exchange Success!');
-      const facebookAccessToken = tokenResponse.accessToken;
-
-      await finalLoginWithToken(facebookAccessToken);
-
-    } catch (error) {
-      console.error('❌ [CLIENT] Token Exchange Failed:', error);
-      Alert.alert('ข้อผิดพลาด', 'ไม่สามารถแลกเปลี่ยนรหัสเข้าสู่ระบบได้');
-      setFacebookLoading(false);
-    }
-  }, [finalLoginWithToken]);
-
-  const [request, response, promptAsync] = useAuthRequest(
-    {
-      clientId: FACEBOOK_APP_ID,
-      redirectUri,
-      scopes: ['public_profile', 'email'],
-      responseType: ResponseType.Code,
-      extraParams: { display: 'popup' },
-    },
-    discovery
-  );
-
-
-  // 🎯 [FIXED] useEffect สำหรับจัดการ Response และ Deep Link
   useEffect(() => {
-    // ----------------------------------------------------
-    // 1. จัดการ Response จาก useAuthRequest (กรณีปกติ)
-    // ----------------------------------------------------
-    if (response?.type === 'success' && response.params) {
-      console.log('--- CLIENT AUTH RESPONSE RECEIVED (useAuthRequest) ---');
-      console.log('Params:', response.params);
-
-      const { code, error, error_description } = response.params;
-
-      if (code) {
-        console.log('✅ CLIENT received Code from Backend via useAuthRequest. Initiating Exchange.');
-        exchangeCodeForToken({
-          code,
-          state: response.params.state,
-          redirectUri,
-          discovery,
-          // request, // ไม่จำเป็นสำหรับ exchangeCodeForToken
-        });
-      } else if (error) {
-        const errorMessage = error_description || error;
-        Alert.alert("เกิดข้อผิดพลาด", `Error: ${errorMessage}`);
-        setFacebookLoading(false);
-      }
+    if (googleResponse?.type === 'error') {
+      console.error('Google auth error:', googleResponse.error);
+      Alert.alert('Google Login Failed', googleResponse.error?.message || 'เกิดข้อผิดพลาด');
     }
+  }, [googleResponse]);
 
-    // ----------------------------------------------------
-    // 2. จัดการ Deep Link โดยตรง (กรณีที่ useAuthRequest ค้าง/ไม่ทำงาน)
-    // ----------------------------------------------------
+  const handleGoogleCodeExchange = async (code) => {
+    setIsLoading(true);
 
-    // ฟังก์ชัน Listener สำหรับรับลิงก์เมื่อแอปกำลังรันอยู่
-    const handleDeepLink = ({ url }) => {
-      if (url && url.includes('code=')) {
-        console.log('🔗 [DEEP LINK] RECEIVED (App Running):', url);
+    const codeVerifier = googleRequest?.codeVerifier;
+    const redirectUri = REDIRECT_URI_GOOGLE;
 
-        // **FIX: ใช้ url แทน initialUrl**
-        const urlParams = getQueryParams(url);
-        const code = urlParams.code;
-        const state = urlParams.state;
+    console.log('--- L3 DEBUG: Google Exchange Params (Frontend) ---');
+    console.log(`CODE: ${code.substring(0, 10)}... (Length: ${code.length})`);
+    console.log(`CODE_VERIFIER: ${codeVerifier ? codeVerifier.substring(0, 10) + '...' : 'MISSING'}`);
+    console.log(`REDIRECT_URI_USED_FOR_FETCH: ${redirectUri}`);
+    console.log('--------------------------------------------------');
 
-        if (code) {
-          console.log('✅ [DEEP LINK] Found Code! Initiating Exchange via direct link.');
-          exchangeCodeForToken({
-            code,
-            state,
-            redirectUri,
-            discovery,
-          });
-        }
-      }
-    };
-
-    // 🎯 FIX: เรียก getInitialURL ด้วย .then() เพื่อจัดการ Promise และ Error ที่ดีขึ้น
-    Linking.getInitialURL()
-      .then(initialUrl => {
-        if (initialUrl && initialUrl.includes('code=')) {
-          console.log('🔗 [DEEP LINK] RECEIVED (Initial URL):', initialUrl);
-          const urlParams = getQueryParams(initialUrl);
-          const code = urlParams.code;
-          const state = urlParams.state;
-
-          if (code) {
-            console.log('✅ [DEEP LINK] Found Code! Initiating Exchange via initial link.');
-            exchangeCodeForToken({ code, state, redirectUri, discovery });
-          }
-        }
-      })
-      .catch(e => {
-        console.error('❌ Error calling Linking.getInitialURL:', e.message || e);
-      });
-
-    // ลงทะเบียน Listener
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-
-    // Cleanup listener เมื่อ Component ถูกทำลาย
-    return () => {
-      subscription.remove();
-    };
-
-  }, [response, exchangeCodeForToken, redirectUri, discovery]); // เพิ่ม dependencies ที่ถูกต้อง
-
-  // ... (ส่วนอื่นๆ ของ Component - handleFacebookLogin, testSimpleWebBrowser, formatDebugData)
-
-  // ... (ส่วนอื่นๆ ของ Component - handleFacebookLogin, testSimpleWebBrowser, formatDebugData)
-
-  // ... (การแสดงผล/Return JSX) ...
-
-  // ... (การแสดงผล/Return JSX) ...
-  // ... (JSX ของ View และ Styles) ...
-  // ... (JSX ของ View และ Styles) ...
-
-  // ... (ต่อด้วย Stylesheet) ...
-
-  // ฟังก์ชันหลักสำหรับ Facebook login
-  const handleFacebookLogin = async () => {
-    console.log('🔵 Starting Facebook login...');
-
-    // Clear old debug data
-    setDebugData({
-      step1: null,
-      step2: null,
-      finalResult: null,
-      errors: []
-    });
-
-    if (!request) {
-      Alert.alert('กำลังเตรียมการ...', 'กรุณารอสักครู่');
+    if (!codeVerifier) {
+      Alert.alert("Error", "Missing code verifier. Cannot complete PKCE flow.");
+      setIsLoading(false);
       return;
     }
 
-    setFacebookLoading(true);
-    addDebugInfo('step1', {
-      message: 'Starting Facebook login process',
-      timestamp: new Date().toISOString(),
-      redirectUri: redirectUri
+    try {
+      const apiResponse = await fetch(`${API_URL}/auth/google/exchange`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: code,
+          redirect_uri: redirectUri,
+          code_verifier: codeVerifier,
+        }),
+      });
+
+      const data = await apiResponse.json();
+      console.log('✅ Exchange Data from Backend:', data);
+
+      if (data.success) {
+        await checkAndProcessGoogleUser(data.user, data.token);
+      } else {
+        throw new Error(data.message || 'Login failed due to server error.');
+      }
+
+    } catch (error) {
+      console.error('❌ Google login error:', error);
+      Alert.alert('Google Login Failed', error.message || 'An unknown error occurred.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkAndProcessGoogleUser = async (userData, token, errorStatus) => {
+    try {
+      if (errorStatus === 'user_not_found') {
+        // ผู้ใช้ใหม่: เปิด Modal ยืนยัน
+        setUserData(userData);
+        setTempUser({
+          ...userData,
+          token: token,
+        });
+        setShowUserInfo(true);
+        setIsLoading(false);
+      } else {
+        // ผู้ใช้เดิม: เข้าสู่ระบบ
+        await handleLoginSuccess(userData, token);
+      }
+    } catch (e) {
+      console.error('❌ Error in processing Google user:', e);
+      Alert.alert('Error', e.message);
+      setIsLoading(false);
+    }
+  };
+
+  const loginGoogle = async () => {
+    try {
+      await googlePromptAsync();
+    } catch (error) {
+      console.error('Google prompt error:', error);
+    }
+  };
+
+  // 🔥 ฟังก์ชันปิด browser
+  const closeAllBrowsers = async () => {
+    try {
+      await WebBrowser.dismissBrowser();
+      console.log('✅ Browser closed');
+    } catch (error1) {
+      console.log('⚠️ dismissBrowser failed');
+    }
+  };
+
+  // Cleanup when component unmounts
+  useEffect(() => {
+    return () => {
+      const cleanup = async () => {
+        try {
+          await closeAllBrowsers();
+        } catch (e) {
+          // ignore
+        }
+      };
+      cleanup();
+    };
+  }, []);
+
+  // 🚨 CRITICAL: Deep Link Listener สำหรับ Google เท่านั้น
+  useEffect(() => {
+    const sub = Linking.addEventListener('url', async ({ url }) => {
+      console.log('🔗 Received deep link:', url);
+
+      try {
+        await closeEverything();
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+
+      // ===== GOOGLE =====
+      if (url.startsWith('thaiquestify://auth/google')) {
+        const { code, error } = getParams(url);
+
+        if (error || !code) {
+          Alert.alert('Google Error', error || 'No code');
+          return;
+        }
+
+        setIsLoading(true);
+        handleGoogleCodeExchange(code);
+        return;
+      }
     });
 
-    try {
-      console.log('🌐 Opening Facebook login...');
-      console.log('🌐 Using redirect URI:', redirectUri);
+    return () => sub.remove();
+  }, [googleRequest, handleGoogleCodeExchange]);
 
-      // ใช้ promptAsync โดยไม่กำหนด options มากเกินไป
-      await promptAsync();
-
-    } catch (error) {
-      console.error('❌ Error opening Facebook login:', error);
-      Alert.alert(
-        'ไม่สามารถเปิด Facebook ได้',
-        error.message || 'กรุณาลองอีกครั้ง'
-      );
-      setFacebookLoading(false);
+  const closeEverything = async () => {
+    for (let i = 0; i < 3; i++) {
+      try {
+        await WebBrowser.dismissBrowser();
+        break;
+      } catch (e) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
   };
 
-  // ฟังก์ชันทดสอบด้วย WebBrowser แบบง่าย
-  const testSimpleWebBrowser = async () => {
-    console.log('🔵 Testing simple WebBrowser login');
-    setFacebookLoading(true);
-
+  // ฟังก์ชันเข้าสู่ระบบสำเร็จ
+  const handleLoginSuccess = async (userData, token) => {
     try {
-      // ใช้ URL แบบง่าย
-      const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent('https://thaiquestify.com/auth/callback')}&response_type=code&scope=public_profile,email`;
+      console.log('🔐 Saving login data...');
+      console.log('🔐 ========== GOOGLE LOGIN SUCCESS ==========');
+      console.log('📦 User Data:', JSON.stringify(userData, null, 2));
+      console.log('🔑 Token:', token?.substring(0, 50) + '...');
 
-      console.log('🔗 Simple Auth URL:', authUrl);
+      // ปิดก่อน
+      await closeEverything();
 
-      const result = await WebBrowser.openAuthSessionAsync(
-        authUrl,
-        'thaiquestify://auth', // 🎯 เปลี่ยนจาก Web URI เป็น App Scheme
-        {
-          showTitle: false,
-          enableBarCollapsing: true,
-        }
-      );
+      // ใช้ signIn จาก AuthContext
+      const success = await signIn(userData, token);
 
-      console.log('📱 WebBrowser result type:', result.type);
+      if (success) {
+        console.log('🎉 Login successful!');
 
-      if (result.type === 'success' && result.url) {
-        console.log('✅ Success URL:', result.url);
+        // รอให้ browser ปิดสนิท
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Parse code จาก URL แบบง่าย
-        const urlString = result.url;
-        const urlParams = getQueryParams(urlString);
-        const code = urlParams.code;
-        const state = urlParams.state; // WebBrowser อาจจะไม่ส่ง state กลับมา
+        // ปิด modal
+        setShowUserInfo(false);
+        setTempUser(null);
+        setUserData(null);
 
-        if (code) {
-          console.log('✅ Got code from WebBrowser');
-          exchangeCodeForToken({ code, state, redirectUri, discovery });
-        } else {
-          Alert.alert('Error', 'No code in response');
-          setFacebookLoading(false);
-        }
+        // ไปที่ MainTabs
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        });
+
+        return true;
       } else {
-        console.log('❌ WebBrowser cancelled or failed');
-        Alert.alert('ยกเลิก', 'การเข้าสู่ระบบถูกยกเลิก');
-        setFacebookLoading(false);
+        console.error('❌ Sign in failed in AuthContext');
+        Alert.alert('Error', 'Cannot save login data');
+        return false;
       }
     } catch (error) {
-      console.error('❌ WebBrowser error:', error);
-      Alert.alert('Error', error.message);
-      setFacebookLoading(false);
+      console.error('❌ Login error:', error);
+      Alert.alert('Error', 'Login failed');
+      return false;
     }
   };
 
-  // แสดงข้อมูล debug
-  const formatDebugData = (data) => {
-    if (!data) return 'No data';
+  // เมื่อผู้ใช้ยืนยันบันทึกข้อมูล (กรณี user ใหม่)
+  const confirmSaveToDB = async () => {
+    if (!tempUser?.token) {
+      Alert.alert('Error', 'No access token');
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      const safeData = { ...data };
-      // ซ่อนข้อมูล sensitive
-      if (safeData.params?.code) {
-        safeData.params.code = '***' + safeData.params.code.substring(safeData.params.code.length - 6);
+      console.log('💾 Saving new user to database...');
+
+      const res = await fetch(`${API_URL}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          googleId: tempUser.googleId,
+          email: tempUser.email,
+          name: tempUser.name,
+          picture: tempUser.photo,
+          token: tempUser.token
+        }),
+      });
+
+      const data = await res.json();
+      console.log('✅ Save result:', data);
+
+      if (!data.success) throw new Error(data.message);
+
+      const loginSuccess = await handleLoginSuccess(data.user, data.token);
+
+      if (!loginSuccess) {
+        throw new Error('Cannot save login data');
       }
-      return JSON.stringify(safeData, null, 2);
-    } catch {
-      return String(data);
+
+    } catch (e) {
+      console.error('❌ Save error:', e);
+      Alert.alert('Error', e.message);
+      setIsLoading(false);
     }
   };
+
+  const cancelSave = () => {
+    setShowUserInfo(false);
+    setTempUser(null);
+    setUserData(null);
+    Alert.alert('Cancelled', 'Save cancelled');
+  };
+
+  // 🔥 แสดง loading screen พิเศษ
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4285F4" />
+        <Text style={styles.loadingText}>กำลังเข้าสู่ระบบด้วย Google...</Text>
+        <Text style={styles.loadingSubtext}>กรุณารอสักครู่</Text>
+
+        <TouchableOpacity
+          style={styles.forceCloseButton}
+          onPress={closeAllBrowsers}
+        >
+          <Icon name="close" size={16} color="white" />
+          <Text style={styles.forceCloseText}>
+            หากหน้า Login ค้าง ให้กดที่นี่
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#4a6baf', '#6b8cce', '#8fa8e3']} style={styles.bg}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.content}>
-            <Text style={styles.title}>ThaiQuestify</Text>
-            <Text style={styles.subtitle}>เข้าสู่ระบบเพื่อเริ่มใช้งาน</Text>
+      <StatusBar backgroundColor="#4285F4" barStyle="light-content" />
 
-            <TouchableOpacity
-              style={[styles.fbButton, facebookLoading && styles.buttonDisabled]}
-              onPress={handleFacebookLogin}
-              disabled={facebookLoading}
-            >
-              {facebookLoading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator color="#fff" size="small" />
-                  <Text style={styles.fbTextLoading}>กำลังดำเนินการ...</Text>
-                </View>
-              ) : (
-                <>
-                  <IconFA name="facebook" size={24} color="#fff" />
-                  <Text style={styles.fbText}>เข้าสู่ระบบด้วย Facebook</Text>
-                </>
-              )}
-            </TouchableOpacity>
+      {/* Header Section */}
+      <View style={styles.header}>
+        <Text style={styles.appName}>ThaiQuestify</Text>
+        <Text style={styles.appTagline}>ค้นหาเควส ร่วมกิจกรรม รับรางวัล</Text>
+      </View>
 
-            {/* ปุ่มทดสอบแบบง่าย */}
-            <TouchableOpacity
-              style={[styles.testButton, facebookLoading && styles.buttonDisabled]}
-              onPress={testSimpleWebBrowser}
-              disabled={facebookLoading}
-            >
-              <Text style={styles.testButtonText}>ทดสอบแบบธรรมดา (เปิดในเบราว์เซอร์)</Text>
-            </TouchableOpacity>
+      {/* Content */}
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Icon name="emoji-events" size={80} color="#4285F4" style={styles.welcomeIcon} />
+          <Text style={styles.welcomeTitle}>ยินดีต้อนรับสู่ ThaiQuestify</Text>
+          <Text style={styles.welcomeText}>
+            เข้าสู่ระบบเพื่อค้นหาเควสน่าสนใจในพื้นที่ที่คุณต้องการ
+            พร้อมรับรางวัลและสิทธิพิเศษมากมาย
+          </Text>
+        </View>
 
-            {/* DEBUG SECTION */}
-            <View style={styles.debugContainer}>
-              <Text style={styles.debugTitle}>🔧 ข้อมูล Debug</Text>
+        {/* Google Login Button */}
+        <View style={styles.loginSection}>
+          <Text style={styles.loginTitle}>เข้าสู่ระบบด้วย Google</Text>
 
-              <View style={styles.debugBox}>
-                <Text style={styles.debugSubtitle}>การตั้งค่า</Text>
-                <Text style={styles.stateText}>Redirect URI: {redirectUri}</Text>
-                <Text style={styles.stateText}>แพลตฟอร์ม: {Platform.OS}</Text>
-              </View>
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={loginGoogle}
+            disabled={isLoading || !googleRequest}
+          >
+            <View style={styles.googleButtonContent}>
+              <Icon name="mail" size={24} color="#DB4437" />
+              <Text style={styles.googleButtonText}>เข้าสู่ระบบด้วย Google</Text>
+            </View>
+          </TouchableOpacity>
 
-              <View style={styles.debugBox}>
-                <Text style={styles.debugSubtitle}>สถานะปัจจุบัน</Text>
-                <Text style={styles.stateText}>
-                  กำลังโหลด: {facebookLoading ? '✅ กำลังดำเนินการ' : '❌ ไม่ได้โหลด'}
-                </Text>
-                <Text style={styles.stateText}>
-                  Response ล่าสุด: {response?.type || 'ยังไม่มี'}
-                </Text>
-                {response?.params?.error && (
-                  <Text style={styles.errorStateText}>
-                    ข้อผิดพลาด: {response.params.error}
-                  </Text>
-                )}
-              </View>
-
-              {/* Step Results */}
-              {debugData.step1 && (
-                <View style={styles.debugBox}>
-                  <Text style={styles.debugSubtitle}>ขั้นตอน 1: การตอบกลับจาก Facebook</Text>
-                  <ScrollView style={styles.dataScrollView}>
-                    <Text style={styles.dataText}>
-                      {formatDebugData(debugData.step1)}
-                    </Text>
-                  </ScrollView>
-                </View>
-              )}
-
-              {/* Step 2 Result */}
-              {debugData.step2 && (
-                <View style={styles.debugBox}>
-                  <Text style={styles.debugSubtitle}>ขั้นตอน 2: การแลกเปลี่ยนรหัส</Text>
-                  <ScrollView style={styles.dataScrollView}>
-                    <Text style={styles.dataText}>
-                      {formatDebugData(debugData.step2)}
-                    </Text>
-                  </ScrollView>
-                </View>
-              )}
-
-              {/* Step 3 Result */}
-              {debugData.finalResult && (
-                <View style={styles.debugBox}>
-                  <Text style={styles.debugSubtitle}>ขั้นตอน 3: การเข้าสู่ระบบขั้นสุดท้าย</Text>
-                  <ScrollView style={styles.dataScrollView}>
-                    <Text style={styles.dataText}>
-                      {formatDebugData(debugData.finalResult)}
-                    </Text>
-                  </ScrollView>
-                </View>
-              )}
-
-              {/* คำแนะนำแก้ปัญหา */}
-              <View style={styles.troubleshootBox}>
-                <Text style={styles.troubleshootTitle}>🛠️ แก้ไขปัญหา "Something went wrong"</Text>
-                <Text style={styles.troubleshootText}>
-                  หากเห็นข้อความ "Something went wrong" ใน Facebook:
-                </Text>
-                <Text style={styles.troubleshootText}>1. ตรวจสอบว่า URL นี้ถูกเพิ่มใน Facebook App Settings:</Text>
-                <Text style={styles.troubleshootCode}>{redirectUri}</Text>
-                <Text style={styles.troubleshootText}>2. ลองใช้ปุ่ม "ทดสอบแบบธรรมดา"</Text>
-                <Text style={styles.troubleshootText}>3. ลองลบแอป Facebook และติดตั้งใหม่</Text>
-                <Text style={styles.troubleshootText}>4. ลองใช้เครื่องหรือเบราว์เซอร์อื่น</Text>
-              </View>
-
-              {/* ปุ่มล้างข้อมูล debug */}
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={() => setDebugData({
-                  step1: null,
-                  step2: null,
-                  finalResult: null,
-                  errors: []
-                })}
-              >
-                <Text style={styles.clearButtonText}>ล้างข้อมูล Debug</Text>
-              </TouchableOpacity>
+          <View style={styles.benefitsSection}>
+            <Text style={styles.benefitsTitle}>ทำไมต้องใช้ Google?</Text>
+            <View style={styles.benefitItem}>
+              <Icon name="security" size={16} color="#34A853" />
+              <Text style={styles.benefitText}>ปลอดภัยด้วยระบบของ Google</Text>
+            </View>
+            <View style={styles.benefitItem}>
+              <Icon name="speed" size={16} color="#4285F4" />
+              <Text style={styles.benefitText}>เข้าสู่ระบบเร็วในครั้งต่อไป</Text>
+            </View>
+            <View style={styles.benefitItem}>
+              <Icon name="verified-user" size={16} color="#FBBC05" />
+              <Text style={styles.benefitText}>ยืนยันตัวตนอัตโนมัติ</Text>
             </View>
           </View>
-        </ScrollView>
-      </LinearGradient>
+
+          <Text style={styles.termsText}>
+            เมื่อเข้าสู่ระบบ แสดงว่าคุณยอมรับ{' '}
+            <Text style={styles.termsLink}>ข้อกำหนดการใช้งาน</Text> และ{' '}
+            <Text style={styles.termsLink}>นโยบายความเป็นส่วนตัว</Text>
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* Modal แสดงข้อมูลผู้ใช้ใหม่ */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showUserInfo}
+        onRequestClose={() => setShowUserInfo(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.modalTitle}>ยินดีต้อนรับ! 👋</Text>
+              <Text style={styles.modalSubtitle}>ไม่พบข้อมูลของคุณในระบบ กรุณาตรวจสอบข้อมูลก่อนบันทึก</Text>
+
+              {/* รูปโปรไฟล์ */}
+              {userData?.photo && (
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={{ uri: userData.photo }}
+                    style={styles.profileImage}
+                    resizeMode="cover"
+                  />
+                </View>
+              )}
+
+              {/* ข้อมูลผู้ใช้ */}
+              <View style={styles.infoContainer}>
+                <InfoRow label="ชื่อ-นามสกุล" value={userData?.name} />
+                <InfoRow label="อีเมล" value={userData?.email} />
+                <InfoRow label="Google ID" value={userData?.googleId} />
+                <InfoRow label="สถานะ" value="ผู้ใช้ใหม่" />
+                <InfoRow label="วิธีการเข้าสู่ระบบ" value="Google" />
+              </View>
+
+              {/* คำอธิบาย */}
+              <View style={styles.noteBox}>
+                <Text style={styles.noteTitle}>ข้อมูลนี้จะถูกบันทึก:</Text>
+                <Text style={styles.noteText}>• ชื่อและอีเมล</Text>
+                <Text style={styles.noteText}>• รูปโปรไฟล์ (ถ้ามี)</Text>
+                <Text style={styles.noteText}>• Google ID สำหรับเข้าสู่ระบบในครั้งต่อไป</Text>
+              </View>
+
+              {/* ปุ่มดำเนินการ */}
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.confirmButton]}
+                  onPress={confirmSaveToDB}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.buttonText}>บันทึกและเข้าสู่ระบบ</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.cancelButton]}
+                  onPress={cancelSave}
+                  disabled={isLoading}
+                >
+                  <Text style={styles.cancelButtonText}>ยกเลิก</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
+// Component ย่อย
+const InfoRow = ({ label, value }) => (
+  <View style={styles.infoRow}>
+    <Text style={styles.infoLabel}>{label}:</Text>
+    <Text style={styles.infoValue} numberOfLines={2}>
+      {value || 'ไม่ระบุ'}
+    </Text>
+  </View>
+);
+
+// ==================== STYLES ====================
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  bg: { flex: 1 },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: 20,
-  },
-  content: {
-    width: '90%',
-    maxWidth: 400,
-    alignItems: 'center',
-    alignSelf: 'center',
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#fff',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  fbButton: {
-    backgroundColor: '#1877F2',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    paddingVertical: 18,
-    borderRadius: 12,
-    gap: 16,
-    marginBottom: 15,
-  },
-  testButton: {
-    backgroundColor: '#4CAF50',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginBottom: 30,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
   },
   loadingContainer: {
-    flexDirection: 'row',
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
+    backgroundColor: '#f8f9fa',
+    padding: 20,
   },
-  fbText: {
-    color: '#fff',
+  loadingText: {
     fontSize: 18,
-    fontWeight: '600',
-  },
-  fbTextLoading: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  testButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  debugContainer: {
-    width: '100%',
+    color: '#333',
     marginTop: 20,
   },
-  debugTitle: {
-    color: '#ff8800',
+  loadingSubtext: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 5,
+  },
+  forceCloseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ff6b6b',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 30,
+    gap: 8,
+  },
+  forceCloseText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  header: {
+    backgroundColor: '#4285F4',
+    padding: 25,
+    paddingTop: 60,
+    alignItems: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  appName: {
+    fontSize: 28,
     fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 8,
+  },
+  appTagline: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+  },
+  content: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  welcomeSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+    marginTop: 20,
+  },
+  welcomeIcon: {
+    marginBottom: 20,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  welcomeText: {
     fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  loginSection: {
+    marginBottom: 30,
+    alignItems: 'center',
+  },
+  loginTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 25,
+    textAlign: 'center',
+  },
+  googleButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 30,
+    marginBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+    width: '80%',
+  },
+  googleButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleButtonText: {
+    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  benefitsSection: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 25,
+    width: '90%',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  benefitsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 15,
     textAlign: 'center',
   },
-  debugBox: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
-  debugSubtitle: {
-    color: '#29b6f6',
-    fontWeight: 'bold',
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
+  },
+  benefitText: {
     fontSize: 14,
+    color: '#666',
+    marginLeft: 10,
   },
-  dataScrollView: {
-    maxHeight: 150,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 5,
-    padding: 10,
-  },
-  dataText: {
-    color: '#fff',
-    fontSize: 11,
-    fontFamily: 'monospace',
-  },
-  stateText: {
-    color: '#fff',
+  termsText: {
     fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: 20,
+  },
+  termsLink: {
+    color: '#4285F4',
+    fontWeight: '500',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 25,
+    width: '90%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4285F4',
+    textAlign: 'center',
     marginBottom: 5,
   },
-  errorStateText: {
-    color: '#ff4444',
-    fontSize: 12,
-    marginBottom: 5,
-    fontWeight: 'bold',
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
   },
-  troubleshootBox: {
-    backgroundColor: 'rgba(255, 87, 34, 0.2)',
+  imageContainer: {
+    alignItems: 'center',
+    marginVertical: 15,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: '#4285F4',
+  },
+  infoContainer: {
+    marginVertical: 15,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  infoLabel: {
+    width: '40%',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  infoValue: {
+    width: '60%',
+    fontSize: 16,
+    color: '#555',
+  },
+  noteBox: {
+    backgroundColor: '#f8f9fa',
     padding: 15,
-    borderRadius: 10,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#ff5722',
+    borderRadius: 8,
+    marginVertical: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4285F4',
   },
-  troubleshootTitle: {
-    color: '#ff5722',
+  noteTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 10,
-    fontSize: 14,
+    color: '#333',
+    marginBottom: 8,
   },
-  troubleshootText: {
-    color: '#fff',
-    fontSize: 11,
+  noteText: {
+    fontSize: 14,
+    color: '#666',
     marginBottom: 4,
   },
-  troubleshootCode: {
-    color: '#ffcc80',
-    fontSize: 10,
-    fontFamily: 'monospace',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    padding: 5,
-    borderRadius: 4,
-    marginVertical: 5,
+  buttonContainer: {
+    marginTop: 25,
   },
-  clearButton: {
-    backgroundColor: '#757575',
-    padding: 12,
-    borderRadius: 8,
+  actionButton: {
+    paddingVertical: 15,
+    borderRadius: 10,
+    marginBottom: 12,
     alignItems: 'center',
-    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  clearButtonText: {
-    color: '#fff',
-    fontSize: 14,
+  confirmButton: {
+    backgroundColor: '#4285F4',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  buttonText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: '#666',
     fontWeight: '600',
   },
 });

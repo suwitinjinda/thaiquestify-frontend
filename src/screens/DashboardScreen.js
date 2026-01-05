@@ -1,93 +1,115 @@
+// src/screens/DashboardScreen.js - FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
-  TouchableOpacity,
+  ScrollView,
   ActivityIndicator,
-  RefreshControl,
-    Dimensions,
-  Image
+  TouchableOpacity
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
-
-const DashboardScreen = ({ navigation }) => {
+const DashboardScreen = ({ navigation, route }) => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState({
-    totalQuests: 0,
-    activeQuests: 0,
-    completedQuests: 0,
-    totalPoints: 0,
-    pendingRewards: 0,
-    shopCount: 0,
-  });
+  const [loading, setLoading] = useState(false);
+  const [dashboardData, setDashboardData] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
-  }, [user]);
+  }, []);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
-      if (user) {
-        // Load user-specific dashboard data
-        const response = await api.get(`/users/${user._id}/dashboard`);
-        if (response.data.success) {
-          setStats(response.data.data);
-        }
-      } else {
-        // Load public dashboard data
-        const response = await api.get('/dashboard/public');
-        if (response.data.success) {
-          setStats(response.data.data);
-        }
-      }
+      console.log('📊 Loading dashboard data...');
+
+      // ❌ หยุดเรียก API ที่ไม่มี
+      // const response = await fetch('https://thaiquestify.com/api/dashboard');
+
+      // ✅ ใช้ mock data เท่านั้น
+      setTimeout(() => {
+        const mockData = getMockDashboardData(user?.userType);
+        setDashboardData(mockData);
+        setLoading(false);
+        console.log('✅ Dashboard loaded with mock data');
+      }, 500);
+
     } catch (error) {
-      console.error('Error loading dashboard:', error);
-    } finally {
+      console.error('❌ Error loading dashboard:', error);
+
+      // Fallback to mock data
+      const mockData = getMockDashboardData(user?.userType);
+      setDashboardData(mockData);
       setLoading(false);
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadDashboardData();
-    setRefreshing(false);
+  const getMockDashboardData = (userType) => {
+    // Mock data สำหรับ user ทุกประเภท
+    const baseData = {
+      totalQuests: 24,
+      activeQuests: 8,
+      completedQuests: 16,
+      totalPoints: 1250,
+      recentActivities: [
+        { id: 1, title: 'Facebook Check-in สำเร็จ', points: 100, time: '2 ชั่วโมงที่แล้ว' },
+        { id: 2, title: 'รีวิวร้านอาหาร', points: 150, time: '1 วันที่แล้ว' },
+        { id: 3, title: 'เข้าร่วมกิจกรรม', points: 50, time: '2 วันที่แล้ว' },
+      ]
+    };
+
+    switch (userType) {
+      case 'shop':
+        return {
+          ...baseData,
+          shopStats: {
+            totalShops: 1,
+            activeCampaigns: 3,
+            totalParticipants: 45,
+            revenue: 12500
+          },
+          userType: 'shop'
+        };
+
+      case 'partner':
+        return {
+          ...baseData,
+          partnerStats: {
+            partnerShops: 8,
+            activeShops: 6,
+            totalRevenue: 85000,
+            commission: 8500
+          },
+          userType: 'partner'
+        };
+
+      case 'admin':
+        return {
+          ...baseData,
+          adminStats: {
+            totalUsers: 1234,
+            totalShops: 567,
+            activeQuests: 89,
+            systemHealth: 'ดี'
+          },
+          userType: 'admin'
+        };
+
+      default: // customer
+        return {
+          ...baseData,
+          customerStats: {
+            questsCompleted: 12,
+            currentRank: 'Explorer',
+            nextRank: 'Adventurer',
+            pointsToNextRank: 250
+          },
+          userType: 'customer'
+        };
+    }
   };
-
-  const StatCard = ({ title, value, icon, color, onPress }) => (
-    <TouchableOpacity 
-      style={styles.statCard}
-      onPress={onPress}
-      disabled={!onPress}
-    >
-      <View style={[styles.statIconContainer, { backgroundColor: color + '20' }]}>
-        <Icon name={icon} size={24} color={color} />
-      </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statTitle}>{title}</Text>
-    </TouchableOpacity>
-  );
-
-  const QuickAction = ({ title, icon, color, route, params }) => (
-    <TouchableOpacity 
-      style={styles.quickAction}
-      onPress={() => navigation.navigate(route, params)}
-    >
-      <View style={[styles.actionIcon, { backgroundColor: color }]}>
-        <Icon name={icon} size={20} color="white" />
-      </View>
-      <Text style={styles.actionTitle}>{title}</Text>
-    </TouchableOpacity>
-  );
 
   if (loading) {
     return (
@@ -99,266 +121,97 @@ const DashboardScreen = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>
-            {user ? `ยินดีต้อนรับ, ${user.name}!` : 'แดชบอร์ด'}
-          </Text>
-          <Text style={styles.headerSubtitle}>
-            {user ? `ตำแหน่ง: ${user.userType || 'ผู้ใช้'}` : 'เข้าสู่ระบบเพื่อดูข้อมูลส่วนตัว'}
-          </Text>
-        </View>
-        {user && (
-          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-            <Icon name="settings" size={24} color="#666" />
-          </TouchableOpacity>
-        )}
+        <Text style={styles.title}>แดชบอร์ด</Text>
+        <Text style={styles.subtitle}>
+          {user ? `สวัสดี, ${user.name}!` : 'ยินดีต้อนรับ'}
+        </Text>
       </View>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Stats Overview */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ภาพรวม</Text>
-          <View style={styles.statsGrid}>
-            <StatCard
-              title="เควสทั้งหมด"
-              value={stats.totalQuests}
-              icon="assignment"
-              color="#4a6baf"
-              onPress={() => navigation.navigate('QuestTab')}
-            />
-            
-            <StatCard
-              title="เควสที่ทำแล้ว"
-              value={stats.completedQuests}
-              icon="check-circle"
-              color="#28a745"
-              onPress={() => navigation.navigate('UserQuests')}
-            />
-            
-            <StatCard
-              title="คะแนนสะสม"
-              value={stats.totalPoints}
-              icon="star"
-              color="#ffc107"
-              onPress={() => navigation.navigate('WalletTab')}
-            />
-            
-            <StatCard
-              title="รางวัลรอรับ"
-              value={stats.pendingRewards}
-              icon="card-giftcard"
-              color="#dc3545"
-              onPress={() => navigation.navigate('WalletTab')}
-            />
+      {/* Stats Cards */}
+      {dashboardData && (
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Icon name="assignment" size={24} color="#4a6baf" />
+            <Text style={styles.statNumber}>{dashboardData.totalQuests}</Text>
+            <Text style={styles.statLabel}>เควสทั้งหมด</Text>
           </View>
-        </View>
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ดำเนินการรวดเร็ว</Text>
-          <View style={styles.quickActions}>
-            {user ? (
-              <>
-                {user.userType === 'customer' && (
-                  <>
-                    <QuickAction
-                      title="เควสของฉัน"
-                      icon="list-alt"
-                      color="#4a6baf"
-                      route="UserQuests"
-                    />
-                    <QuickAction
-                      title="ค้นหาเควส"
-                      icon="search"
-                      color="#28a745"
-                      route="ExploreTab"
-                    />
-                    <QuickAction
-                      title="กระเป๋าเงิน"
-                      icon="wallet"
-                      color="#ffc107"
-                      route="WalletTab"
-                    />
-                    <QuickAction
-                      title="โปรไฟล์"
-                      icon="person"
-                      color="#dc3545"
-                      route="Profile"
-                    />
-                  </>
-                )}
-                
-                {user.userType === 'shop' && (
-                  <>
-                    <QuickAction
-                      title="สร้างเควส"
-                      icon="add-circle"
-                      color="#4a6baf"
-                      route="ShopCreateQuest"
-                    />
-                    <QuickAction
-                      title="จัดการเควส"
-                      icon="assignment"
-                      color="#28a745"
-                      route="ShopDashboard"
-                    />
-                    <QuickAction
-                      title="ดูสถิติ"
-                      icon="analytics"
-                      color="#ffc107"
-                      route="ShopDashboard"
-                    />
-                    <QuickAction
-                      title="ตั้งค่า"
-                      icon="settings"
-                      color="#dc3545"
-                      route="Profile"
-                    />
-                  </>
-                )}
-                
-                {user.userType === 'admin' && (
-                  <>
-                    <QuickAction
-                      title="จัดการร้านค้า"
-                      icon="store"
-                      color="#4a6baf"
-                      route="ManageShops"
-                    />
-                    <QuickAction
-                      title="เทมเพลตเควส"
-                      icon="description"
-                      color="#28a745"
-                      route="AdminQuestTemplates"
-                    />
-                    <QuickAction
-                      title="ดูสถิติ"
-                      icon="analytics"
-                      color="#ffc107"
-                      route="AdminDashboard"
-                    />
-                    <QuickAction
-                      title="ผู้ใช้งาน"
-                      icon="people"
-                      color="#dc3545"
-                      route="AdminDashboard"
-                    />
-                  </>
-                )}
-                
-                {user.userType === 'partner' && (
-                  <>
-                    <QuickAction
-                      title="ร้านค้าในเครือ"
-                      icon="store"
-                      color="#4a6baf"
-                      route="ManageShops"
-                    />
-                    <QuickAction
-                      title="ลงทะเบียนร้าน"
-                      icon="add-business"
-                      color="#28a745"
-                      route="ShopRegister"
-                    />
-                    <QuickAction
-                      title="ดูสถิติ"
-                      icon="analytics"
-                      color="#ffc107"
-                      route="PartnerDashboard"
-                    />
-                    <QuickAction
-                      title="รายงาน"
-                      icon="assessment"
-                      color="#dc3545"
-                      route="PartnerDashboard"
-                    />
-                  </>
-                )}
-              </>
-            ) : (
-              // Quick actions for non-logged in users
-              <>
-                <QuickAction
-                  title="เข้าสู่ระบบ"
-                  icon="login"
-                  color="#4a6baf"
-                  route="Login"
-                />
-                <QuickAction
-                  title="สมัครสมาชิก"
-                  icon="person-add"
-                  color="#28a745"
-                  route="Login"
-                />
-                <QuickAction
-                  title="ค้นหาเควส"
-                  icon="search"
-                  color="#ffc107"
-                  route="ExploreTab"
-                />
-                <QuickAction
-                  title="เกี่ยวกับเรา"
-                  icon="info"
-                  color="#dc3545"
-                  route="MainTabs"
-                />
-              </>
-            )}
+          <View style={styles.statCard}>
+            <Icon name="check-circle" size={24} color="#28a745" />
+            <Text style={styles.statNumber}>{dashboardData.completedQuests}</Text>
+            <Text style={styles.statLabel}>สำเร็จแล้ว</Text>
           </View>
-        </View>
 
-        {/* Recent Activity */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>กิจกรรมล่าสุด</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>ดูทั้งหมด</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.activityList}>
-            <View style={styles.activityItem}>
-              <View style={[styles.activityIcon, { backgroundColor: '#e7f3ff' }]}>
-                <Icon name="notifications" size={20} color="#4a6baf" />
-              </View>
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>มีเควสใหม่ในพื้นที่คุณ</Text>
-                <Text style={styles.activityTime}>5 นาทีที่แล้ว</Text>
-              </View>
-            </View>
-            
-            <View style={styles.activityItem}>
-              <View style={[styles.activityIcon, { backgroundColor: '#d4edda' }]}>
-                <Icon name="check-circle" size={20} color="#28a745" />
-              </View>
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>คุณได้รับรางวัลจากเควส #1234</Text>
-                <Text style={styles.activityTime}>2 ชั่วโมงที่แล้ว</Text>
-              </View>
-            </View>
-            
-            <View style={styles.activityItem}>
-              <View style={[styles.activityIcon, { backgroundColor: '#fff3cd' }]}>
-                <Icon name="star" size={20} color="#ffc107" />
-              </View>
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>คุณได้รับ 50 คะแนน</Text>
-                <Text style={styles.activityTime}>1 วันที่แล้ว</Text>
-              </View>
-            </View>
+          <View style={styles.statCard}>
+            <Icon name="trending-up" size={24} color="#ffb347" />
+            <Text style={styles.statNumber}>{dashboardData.totalPoints}</Text>
+            <Text style={styles.statLabel}>คะแนน</Text>
           </View>
         </View>
-      </ScrollView>
-    </View>
+      )}
+
+      {/* User Type Specific Content */}
+      {user?.userType === 'customer' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📈 ความคืบหน้าของคุณ</Text>
+          <View style={styles.progressCard}>
+            <Text style={styles.progressText}>ระดับปัจจุบัน: Explorer</Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: '65%' }]} />
+            </View>
+            <Text style={styles.progressSubtext}>เหลืออีก 250 คะแนนเพื่อเลื่อนขั้น</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Recent Activities */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📝 กิจกรรมล่าสุด</Text>
+        {dashboardData?.recentActivities?.map(activity => (
+          <View key={activity.id} style={styles.activityCard}>
+            <View style={styles.activityIcon}>
+              <Icon name="check" size={20} color="#28a745" />
+            </View>
+            <View style={styles.activityContent}>
+              <Text style={styles.activityTitle}>{activity.title}</Text>
+              <Text style={styles.activityTime}>{activity.time}</Text>
+            </View>
+            <Text style={styles.activityPoints}>+{activity.points} pts</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Quick Actions */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🚀 การดำเนินการด่วน</Text>
+        <View style={styles.quickActions}>
+          <TouchableOpacity
+            style={styles.quickAction}
+            onPress={() => navigation.navigate('QuestTab')}
+          >
+            <Icon name="search" size={24} color="#4a6baf" />
+            <Text style={styles.quickActionText}>ค้นหาเควส</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickAction}
+            onPress={() => navigation.navigate('ProfileTab')}
+          >
+            <Icon name="person" size={24} color="#4a6baf" />
+            <Text style={styles.quickActionText}>โปรไฟล์</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>อัปเดตล่าสุด: วันนี้</Text>
+        <Text style={styles.footerVersion}>Dashboard v1.0</Text>
+      </View>
+    </ScrollView>
   );
 };
 
@@ -378,134 +231,111 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  content: {
+    padding: 16,
+    paddingBottom: 40,
+  },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 20,
-    paddingTop: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    marginBottom: 24,
   },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 24,
+  title: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
   },
-  headerSubtitle: {
-    fontSize: 14,
+  subtitle: {
+    fontSize: 16,
     color: '#666',
     marginTop: 4,
   },
-  content: {
-    flex: 1,
-  },
-  section: {
-    padding: 16,
-  },
-  sectionHeader: {
+  statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  statCard: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 12,
+    flex: 1,
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  section: {
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 12,
   },
-  seeAllText: {
-    fontSize: 14,
-    color: '#4a6baf',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '48%',
+  progressCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
     padding: 16,
-    alignItems: 'center',
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+  progressText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
     marginBottom: 8,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+  progressBar: {
+    height: 8,
+    backgroundColor: '#e9ecef',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
   },
-  statTitle: {
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4a6baf',
+    borderRadius: 4,
+  },
+  progressSubtext: {
     fontSize: 12,
     color: '#666',
-    textAlign: 'center',
   },
-  quickActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  quickAction: {
-    flex: 1,
-    minWidth: '48%',
+  activityCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  actionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 8,
-  },
-  actionTitle: {
-    fontSize: 12,
-    color: '#333',
-    textAlign: 'center',
-  },
-  activityList: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#e7f3ff',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -517,11 +347,51 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#333',
-    marginBottom: 2,
   },
   activityTime: {
     fontSize: 12,
-    color: '#666',
+    color: '#999',
+    marginTop: 2,
+  },
+  activityPoints: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#28a745',
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  quickAction: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickActionText: {
+    fontSize: 14,
+    color: '#333',
+    marginTop: 8,
+  },
+  footer: {
+    alignItems: 'center',
+    padding: 16,
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#999',
+  },
+  footerVersion: {
+    fontSize: 10,
+    color: '#ccc',
+    marginTop: 4,
   },
 });
 

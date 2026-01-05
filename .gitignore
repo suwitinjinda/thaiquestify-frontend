@@ -60,8 +60,6 @@ Thumbs.db
 .expo/
 
 # Native builds
-android/
-ios/
 
 # Dependencies
 node_modules/

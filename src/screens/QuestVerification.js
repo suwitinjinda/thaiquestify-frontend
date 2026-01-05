@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Linking
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { LoginManager, AccessToken, GraphRequest, GraphRequestManager } from 'react-native-fbsdk-next';
 
@@ -19,11 +19,11 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [facebookData, setFacebookData] = useState(null);
-  
+
   // Check if this is a Facebook verification quest
-  const isFacebookVerification = quest.verificationMethod === 'facebook_api' || 
-                                 quest.type === 'facebook_follow';
-  
+  const isFacebookVerification = quest.verificationMethod === 'facebook_api' ||
+    quest.type === 'facebook_follow';
+
   // Get Facebook page data from quest
   const getFacebookPageData = () => {
     // Try different ways to get Facebook data from the quest
@@ -77,34 +77,34 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
     try {
       setLoading(true);
       console.log('🔗 Starting Facebook login...');
-      
+
       // Logout first to clear any existing sessions
       await LoginManager.logOut();
-      
+
       // Login with Facebook permissions
       const result = await LoginManager.logInWithPermissions(['public_profile', 'pages_show_list']);
-      
+
       if (result.isCancelled) {
         console.log('Facebook login cancelled by user');
         Alert.alert('ยกเลิก', 'คุณยกเลิกการเชื่อมต่อกับ Facebook');
         return null;
       }
-      
+
       if (result.declinedPermissions && result.declinedPermissions.includes('pages_show_list')) {
         Alert.alert('สิทธิ์ไม่ครบ', 'กรุณาอนุญาตสิทธิ์การเข้าถึงเพจ Facebook ของคุณ');
         return null;
       }
-      
+
       // Get access token
       const data = await AccessToken.getCurrentAccessToken();
-      
+
       if (!data) {
         throw new Error('ไม่สามารถดึงข้อมูล Facebook access token ได้');
       }
-      
+
       console.log('✅ Facebook login successful');
       return data.accessToken;
-      
+
     } catch (error) {
       console.error('Facebook login error:', error);
       Alert.alert('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อ Facebook ได้: ' + error.message);
@@ -117,7 +117,7 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
   const checkPageLikeStatus = async (accessToken, pageId) => {
     return new Promise((resolve, reject) => {
       console.log(`🔍 Checking like status for page ${pageId}`);
-      
+
       const request = new GraphRequest(
         `/me/likes/${pageId}`,
         {
@@ -136,7 +136,7 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
           }
         }
       );
-      
+
       new GraphRequestManager().addRequest(request).start();
     });
   };
@@ -161,7 +161,7 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
           }
         }
       );
-      
+
       new GraphRequestManager().addRequest(request).start();
     });
   };
@@ -169,39 +169,39 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
   const handleFacebookVerification = async () => {
     try {
       setLoading(true);
-      
+
       const facebookPage = getFacebookPageData();
-      
+
       if (!facebookPage.pageId) {
         Alert.alert('ข้อผิดพลาด', 'ไม่พบข้อมูลเพจ Facebook สำหรับเควสนี้');
         return;
       }
 
       console.log(`🔍 Verifying Facebook page follow: ${facebookPage.pageName}`);
-      
+
       // Step 1: Login with Facebook
       Alert.alert(
         'เชื่อมต่อกับ Facebook',
         'ระบบจะเปิด Facebook เพื่อตรวจสอบว่าคุณกดไลค์เพจแล้วหรือไม่',
         [
           { text: 'ยกเลิก', style: 'cancel' },
-          { 
-            text: 'ดำเนินการต่อ', 
+          {
+            text: 'ดำเนินการต่อ',
             onPress: async () => {
               try {
                 const accessToken = await loginWithFacebook();
-                
+
                 if (!accessToken) {
                   return;
                 }
-                
+
                 // Step 2: Get user profile
                 const userProfile = await getUserFacebookProfile(accessToken);
                 console.log('User Facebook profile:', userProfile);
-                
+
                 // Step 3: Check if user follows the page
                 const isFollowing = await checkPageLikeStatus(accessToken, facebookPage.pageId);
-                
+
                 if (isFollowing) {
                   // Success! User follows the page
                   setFacebookData({
@@ -210,7 +210,7 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
                     userName: userProfile.name,
                     verifiedAt: new Date().toISOString()
                   });
-                  
+
                   Alert.alert(
                     'สำเร็จ! 🎉',
                     `ยืนยันแล้วว่าคุณกดไลค์เพจ ${facebookPage.pageName} แล้ว`,
@@ -234,8 +234,8 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
                     'ยังไม่ได้กดไลค์เพจ',
                     `เราไม่พบว่าคุณได้กดไลค์เพจ "${facebookPage.pageName}"\n\nกรุณากดไลค์เพจก่อน แล้วลองใหม่อีกครั้ง`,
                     [
-                      { 
-                        text: 'เปิดเพจใน Facebook', 
+                      {
+                        text: 'เปิดเพจใน Facebook',
                         onPress: () => {
                           const fbUrl = facebookPage.pageUrl || `https://facebook.com/${facebookPage.pageId}`;
                           Linking.openURL(fbUrl).catch(() => {
@@ -258,7 +258,7 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
           }
         ]
       );
-      
+
     } catch (error) {
       console.error('Facebook verification error:', error);
       Alert.alert('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการตรวจสอบ');
@@ -273,7 +273,7 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
       timestamp: new Date().toISOString(),
       status: 'verified'
     };
-    
+
     onVerificationComplete(finalVerificationData);
   };
 
@@ -285,7 +285,7 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
         timestamp: new Date().toISOString(),
         location: null,
       };
-      
+
       onVerificationComplete(verificationData);
     }
   };
@@ -295,7 +295,7 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
     <View style={styles.verificationContainer}>
       <Icon name="facebook" size={60} color="#1877f2" />
       <Text style={styles.verificationTitle}>ตรวจสอบการกดไลค์เพจ Facebook</Text>
-      
+
       <View style={styles.facebookPageInfo}>
         <Icon name="thumb-up" size={24} color="#1877f2" />
         <View style={styles.pageInfo}>
@@ -307,11 +307,11 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
           </Text>
         </View>
       </View>
-      
+
       <Text style={styles.verificationDescription}>
         ระบบจะตรวจสอบอัตโนมัติว่าคุณได้กดไลค์เพจ Facebook นี้แล้วหรือไม่
       </Text>
-      
+
       <View style={styles.instructionsBox}>
         <Text style={styles.instructionsTitle}>ขั้นตอนการตรวจสอบ:</Text>
         <View style={styles.instructionStep}>
@@ -327,8 +327,8 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
           <Text style={styles.stepText}>รับรางวัลทันทีหลังตรวจสอบสำเร็จ</Text>
         </View>
       </View>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.facebookButton}
         onPress={handleFacebookVerification}
         disabled={loading}
@@ -344,8 +344,8 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
           </>
         )}
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.manualOption}
         onPress={() => setStep(1)}
       >
@@ -353,7 +353,7 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
           หรือส่งหลักฐานด้วยตนเอง
         </Text>
       </TouchableOpacity>
-      
+
       <View style={styles.privacyNotice}>
         <Icon name="security" size={16} color="#666" />
         <Text style={styles.privacyText}>
@@ -371,20 +371,20 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
       <Text style={styles.verificationDescription}>
         {quest.instructions || quest.photoInstructions || 'กรุณาถ่ายภาพตามที่กำหนดในคำอธิบายเควส'}
       </Text>
-      
+
       <View style={styles.photoButtons}>
         <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
           <Icon name="photo-camera" size={24} color="#4a6baf" />
           <Text style={styles.photoButtonText}>ถ่ายภาพใหม่</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.photoButton} onPress={chooseFromLibrary}>
           <Icon name="photo-library" size={24} color="#4a6baf" />
           <Text style={styles.photoButtonText}>เลือกรูปจากแกลเลอรี</Text>
         </TouchableOpacity>
-        
+
         {isFacebookVerification && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.photoButton, styles.facebookOptionButton]}
             onPress={() => setStep(3)}
           >
@@ -400,21 +400,21 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
   const renderEvidencePreview = () => (
     <View style={styles.verificationContainer}>
       <Text style={styles.verificationTitle}>ตรวจสอบหลักฐาน</Text>
-      
-      <Image 
-        source={{ uri: evidence.uri }} 
+
+      <Image
+        source={{ uri: evidence.uri }}
         style={styles.evidenceImage}
       />
-      
+
       <View style={styles.evidenceActions}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.retakeButton}
           onPress={() => setStep(1)}
         >
           <Text style={styles.retakeButtonText}>ถ่ายใหม่</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.submitButton}
           onPress={submitEvidence}
         >
@@ -444,7 +444,7 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
           </>
         )}
       </View>
-      
+
       {/* Step Labels */}
       <View style={styles.stepLabels}>
         <Text style={[styles.stepLabel, step === 1 && styles.stepLabelActive]}>
@@ -459,14 +459,14 @@ const QuestVerification = ({ quest, onVerificationComplete, onCancel, userId }) 
           </Text>
         )}
       </View>
-      
+
       {/* Content based on step */}
       {step === 1 && renderPhotoVerification()}
       {step === 2 && renderEvidencePreview()}
       {step === 3 && renderFacebookVerification()}
-      
+
       {/* Cancel Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.cancelButton}
         onPress={onCancel}
       >

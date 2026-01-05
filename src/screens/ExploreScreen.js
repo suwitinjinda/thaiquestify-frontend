@@ -9,10 +9,11 @@ import {
   TextInput,
   Dimensions,
   ActivityIndicator,
-    RefreshControl,
+  RefreshControl,
   Image
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
+
 import api from '../services/api';
 import { provinceGroups } from '../data/thaiProvinces';
 
@@ -53,7 +54,7 @@ const ExploreScreen = ({ navigation }) => {
   const handleRegionPress = (region) => {
     setSelectedRegion(region);
     setSelectedProvince(null);
-    
+
     // Navigate to RegionQuests
     navigation.navigate('RegionQuests', {
       region: region,
@@ -63,13 +64,13 @@ const ExploreScreen = ({ navigation }) => {
 
   const handleProvincePress = async (province) => {
     setSelectedProvince(province);
-    
+
     // Fetch shops by province
     try {
       const response = await api.get('/shop/active', {
         params: { province: province }
       });
-      
+
       if (response.data.success) {
         navigation.navigate('ShopQuests', {
           province: province,
@@ -94,11 +95,11 @@ const ExploreScreen = ({ navigation }) => {
       popularProvinces: provinceGroups[region]?.slice(0, 3) || [],
       totalShops: 0,
     };
-    
+
     const questCount = stats.activeQuests || 0;
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.regionCard}
         onPress={() => handleRegionPress(region)}
       >
@@ -113,17 +114,17 @@ const ExploreScreen = ({ navigation }) => {
             <Text style={styles.questBadgeText}>{questCount} เควส</Text>
           </View>
         </View>
-        
+
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
-            <View 
+            <View
               style={[
                 styles.progressFill,
-                { 
+                {
                   width: `${Math.min((questCount / 25) * 100, 100)}%`,
                   backgroundColor: getQuestDensityColor(questCount)
                 }
-              ]} 
+              ]}
             />
           </View>
           <Text style={styles.progressText}>
@@ -147,7 +148,7 @@ const ExploreScreen = ({ navigation }) => {
           </View>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.exploreButton}
           onPress={() => handleRegionPress(region)}
         >
@@ -205,7 +206,7 @@ const ExploreScreen = ({ navigation }) => {
           <Text style={styles.sectionDescription}>
             เลือกภาคที่คุณสนใจเพื่อดูเควสที่มีอยู่
           </Text>
-          
+
           <View style={styles.regionsGrid}>
             {Object.keys(provinceGroups).map((region) => (
               <RegionCard key={region} region={region} />
@@ -219,7 +220,7 @@ const ExploreScreen = ({ navigation }) => {
           <Text style={styles.sectionDescription}>
             เลือกจังหวัดเพื่อดูร้านค้าและเควส
           </Text>
-          
+
           <View style={styles.provinceGrid}>
             {Object.entries(provinceGroups).map(([region, provinces]) => (
               <View key={region} style={styles.provinceGroup}>
@@ -258,21 +259,21 @@ const ExploreScreen = ({ navigation }) => {
               </View>
               <Text style={styles.quickLinkTitle}>เควสแนะนำ</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.quickLinkCard}>
               <View style={[styles.quickLinkIcon, { backgroundColor: '#28a745' }]}>
                 <Icon name="local-offer" size={24} color="white" />
               </View>
               <Text style={styles.quickLinkTitle}>รางวัลสูง</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.quickLinkCard}>
               <View style={[styles.quickLinkIcon, { backgroundColor: '#dc3545' }]}>
                 <Icon name="whatshot" size={24} color="white" />
               </View>
               <Text style={styles.quickLinkTitle}>มาแรง</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.quickLinkCard}>
               <View style={[styles.quickLinkIcon, { backgroundColor: '#ffc107' }]}>
                 <Icon name="access-time" size={24} color="white" />

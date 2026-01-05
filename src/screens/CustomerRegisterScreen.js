@@ -12,7 +12,7 @@ import {
     StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 
 const CustomerRegisterScreen = ({ navigation }) => {
     const [formData, setFormData] = useState({

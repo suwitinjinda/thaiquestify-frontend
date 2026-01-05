@@ -13,7 +13,7 @@ import {
   Alert
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 import api from '../services/api';
 import { provinceGroups, getRegionByProvince } from '../data/thaiProvinces';
 
@@ -33,7 +33,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
   // Region display names in Thai
   const regionNames = {
     'เหนือ': 'ภาคเหนือ',
-    'ตะวันออกเฉียงเหนือ': 'ภาคตะวันออกเฉียงเหนือ', 
+    'ตะวันออกเฉียงเหนือ': 'ภาคตะวันออกเฉียงเหนือ',
     'กลาง': 'ภาคกลาง',
     'ตะวันออก': 'ภาคตะวันออก',
     'ตะวันตก': 'ภาคตะวันตก',
@@ -44,18 +44,18 @@ const RegionQuestsScreen = ({ route, navigation }) => {
   const fetchQuestCountsForShops = async (shops) => {
     try {
       console.log('🔍 Fetching quest counts for', shops.length, 'shops');
-      
+
       const shopsWithQuestCounts = await Promise.all(
         shops.map(async (shop) => {
           try {
             // ใช้ shopId ไป query ใน quest database
             const questsResponse = await api.get(`/quests/shop/${shop.shopId}`);
-            
+
             let activeQuests = 0;
             if (questsResponse.data.success) {
               activeQuests = questsResponse.data.data?.length || 0;
             }
-            
+
             return {
               ...shop,
               activeQuests: activeQuests,
@@ -71,7 +71,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
           }
         })
       );
-      
+
       return shopsWithQuestCounts;
     } catch (error) {
       console.error('❌ Error fetching quest counts:', error);
@@ -88,17 +88,17 @@ const RegionQuestsScreen = ({ route, navigation }) => {
     try {
       setLoading(true);
       console.log('🔄 Fetching shops for region:', region);
-      
+
       // Use the correct endpoint: /shop/region/:region
       const response = await api.get(`/shop/region/${region}`);
-      
+
       console.log('📊 Region shops API response:', response.data);
 
       if (response.data.success) {
         const shopsData = response.data.data || [];
-        
+
         console.log(`✅ Found ${shopsData.length} shops in region ${region}`);
-        
+
         // Transform shop data
         const transformedShops = shopsData.map(shop => {
           const shopData = {
@@ -118,24 +118,24 @@ const RegionQuestsScreen = ({ route, navigation }) => {
             activeQuests: 0,
             hasQuests: false
           };
-          
+
           return shopData;
         });
 
         // ดึงจำนวนเควสสำหรับแต่ละร้านค้า
         console.log('🔄 Fetching quest counts for all shops...');
         const shopsWithQuestCounts = await fetchQuestCountsForShops(transformedShops);
-        
+
         setAllShops(shopsWithQuestCounts);
-        
+
         // Group shops by province และคำนวณสถิติเควส
         const shopsByProvince = {};
         const provincesWithShopsList = [];
         const questStatsByProvince = {};
-        
+
         shopsWithQuestCounts.forEach(shop => {
           const province = shop.province;
-          
+
           if (!shopsByProvince[province]) {
             shopsByProvince[province] = [];
             provincesWithShopsList.push(province);
@@ -146,7 +146,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
               shopNames: []
             };
           }
-          
+
           shopsByProvince[province].push(shop);
           questStatsByProvince[province].totalShops++;
           questStatsByProvince[province].totalQuests += shop.activeQuests;
@@ -159,7 +159,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
         setProvinceShops(shopsByProvince);
         setProvincesWithShops(provincesWithShopsList);
         setProvinceQuestStats(questStatsByProvince);
-        
+
         console.log(`✅ Grouped ${shopsWithQuestCounts.length} shops into ${provincesWithShopsList.length} provinces`);
         console.log('📊 Final province quest stats:', questStatsByProvince);
 
@@ -175,7 +175,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
     } catch (error) {
       console.error('❌ Error fetching region shops:', error);
       Alert.alert('Error', 'ไม่สามารถโหลดข้อมูลร้านค้าได้');
-      
+
       // Set empty data on error
       setAllShops([]);
       setProvinceShops({});
@@ -202,7 +202,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
 
   const handleShopPress = (shop) => {
     console.log("shopselect:", shop);
-    
+
     // ตรวจสอบว่ามีเควสหรือไม่
     if (shop.activeQuests === 0) {
       Alert.alert(
@@ -212,9 +212,9 @@ const RegionQuestsScreen = ({ route, navigation }) => {
       );
       return;
     }
-    
+
     console.log('🏪 Selected shop:', shop.shopName);
-    navigation.navigate('ShopQuests', { 
+    navigation.navigate('ShopQuests', {
       shopId: shop.shopId,
       shop: shop
     });
@@ -225,16 +225,16 @@ const RegionQuestsScreen = ({ route, navigation }) => {
   };
 
   const ProvinceCard = ({ province, shopCount }) => {
-    const stats = provinceQuestStats[province] || { 
-      totalQuests: 0, 
-      totalShops: 0, 
+    const stats = provinceQuestStats[province] || {
+      totalQuests: 0,
+      totalShops: 0,
       shopsWithQuests: 0,
-      shopNames: [] 
+      shopNames: []
     };
     const sampleShops = stats.shopNames.slice(0, 3);
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.provinceCard}
         onPress={() => handleProvincePress(province)}
       >
@@ -244,7 +244,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
             <Text style={styles.questCountText}>{stats.totalQuests} เควส</Text>
           </View>
         </View>
-        
+
         <View style={styles.provinceStats}>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>ร้านค้า:</Text>
@@ -261,7 +261,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
             </Text>
           </View>
         </View>
-        
+
         <View style={styles.shopNames}>
           <Text style={styles.shopNamesLabel}>ร้านค้าในจังหวัด:</Text>
           <Text style={styles.shopNamesText} numberOfLines={2}>
@@ -269,7 +269,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
             {stats.shopNames.length > 3 && ` และอีก ${stats.shopNames.length - 3} ร้าน`}
           </Text>
         </View>
-        
+
         <View style={styles.provinceFooter}>
           <Text style={styles.viewShopsText}>
             ดูร้านค้า {stats.totalShops} ร้าน
@@ -283,9 +283,9 @@ const RegionQuestsScreen = ({ route, navigation }) => {
   const ShopCard = ({ shop }) => {
     const hasQuests = shop.activeQuests > 0;
     const estimatedReward = shop.activeQuests * 50; // ประมาณการรางวัล
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[
           styles.shopCard,
           !hasQuests && styles.shopCardDisabled
@@ -293,16 +293,16 @@ const RegionQuestsScreen = ({ route, navigation }) => {
         onPress={() => handleShopPress(shop)}
         disabled={!hasQuests}
       >
-        <Image 
-          source={{ uri: shop.image }} 
+        <Image
+          source={{ uri: shop.image }}
           style={styles.shopImage}
           defaultSource={{ uri: 'https://via.placeholder.com/100' }}
         />
-        
+
         <View style={styles.shopInfo}>
           <Text style={styles.shopName} numberOfLines={2}>{shop.shopName}</Text>
           <Text style={styles.shopType}>{shop.shopType}</Text>
-          
+
           <View style={styles.shopDetails}>
             <View style={styles.detailItem}>
               <Icon name="location-on" size={12} color="#666" />
@@ -310,7 +310,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
                 {shop.district ? `${shop.district}, ` : ''}{shop.province}
               </Text>
             </View>
-            
+
             {shop.phone && (
               <View style={styles.detailItem}>
                 <Icon name="phone" size={12} color="#666" />
@@ -335,7 +335,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
                 </Text>
               </View>
             </View>
-            
+
             {hasQuests ? (
               <View style={styles.questsList}>
                 <Text style={styles.questsAvailable}>🎯 พร้อมทำเควสได้ทันที!</Text>
@@ -395,7 +395,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
         </View>
       </View> */}
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -408,12 +408,12 @@ const RegionQuestsScreen = ({ route, navigation }) => {
             <View style={styles.provinceSummary}>
               <Text style={styles.summaryTitle}>สรุปร้านค้าใน{selectedProvince}</Text>
               <Text style={styles.summaryText}>
-                {provinceShops[selectedProvince]?.length || 0} ร้านค้า • 
-                {provinceQuestStats[selectedProvince]?.shopsWithQuests || 0} ร้านที่มีเควส • 
+                {provinceShops[selectedProvince]?.length || 0} ร้านค้า •
+                {provinceQuestStats[selectedProvince]?.shopsWithQuests || 0} ร้านที่มีเควส •
                 {provinceQuestStats[selectedProvince]?.totalQuests || 0} เควส
               </Text>
             </View>
-            
+
             {provinceShops[selectedProvince]?.length > 0 ? (
               provinceShops[selectedProvince].map((shop) => (
                 <ShopCard key={shop._id} shop={shop} />
@@ -445,13 +445,13 @@ const RegionQuestsScreen = ({ route, navigation }) => {
                 </Text>
               </View>
             </View>
-            
+
             {provincesWithShops.length > 0 ? (
               <View style={styles.provincesGrid}>
                 {provincesWithShops.map((province) => {
                   const shopCount = provinceShops[province]?.length || 0;
                   return (
-                    <ProvinceCard 
+                    <ProvinceCard
                       key={province}
                       province={province}
                       shopCount={shopCount}
@@ -466,7 +466,7 @@ const RegionQuestsScreen = ({ route, navigation }) => {
                 <Text style={styles.emptyStateSubtext}>
                   ร้านค้าอาจจะกำลังสมัครเข้ามาในระบบ โปรดลองใหม่อีกครั้งในภายหลัง
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.refreshButton}
                   onPress={onRefresh}
                 >
@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4a6baf',
     fontWeight: '500',
-    },
+  },
   highlightText: {
     color: '#28a745',
     fontWeight: 'bold',

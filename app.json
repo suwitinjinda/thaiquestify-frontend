@@ -44,6 +44,12 @@
       "eas": {
         "projectId": "00a0158d-1068-4c25-9906-c32706640ba7"
       }
-    }
+    },
+    "owner": "munmunback",
+    "plugins": [
+      "expo-font",
+      "expo-web-browser",
+      "expo-facebook"
+    ]
   }
 }

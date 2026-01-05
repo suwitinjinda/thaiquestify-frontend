@@ -16,7 +16,11 @@ export default function WebCallbackScreen() {
 
                 if (!url) {
                     console.log('❌ No URL provided');
-                    navigation.goBack();
+                    // ❌ BEFORE: navigation.goBack();
+                    // ✅ AFTER: ไปที่ MainTabs (Landing Page) โดยตรง
+                    navigation.replace('MainTabs', {
+                        screen: 'HomeTab'
+                    });
                     return;
                 }
 
@@ -24,14 +28,26 @@ export default function WebCallbackScreen() {
                 // This screen just acts as a bridge
                 console.log('✅ Facebook callback received, returning to app...');
 
-                // Wait a moment then go back to LoginScreen
+                // Wait a moment then go to Landing Page
                 setTimeout(() => {
-                    navigation.goBack();
+                    // ❌ BEFORE: navigation.goBack();
+                    // ✅ AFTER: ไปที่ MainTabs (Landing Page) โดยตรง
+                    navigation.replace('MainTabs', {
+                        screen: 'HomeTab',
+                        params: {
+                            oauthCallback: true,
+                            timestamp: Date.now()
+                        }
+                    });
                 }, 1000);
 
             } catch (error) {
                 console.error('Callback processing error:', error);
-                navigation.goBack();
+                // ❌ BEFORE: navigation.goBack();
+                // ✅ AFTER: ไปที่ MainTabs (Landing Page) โดยตรง
+                navigation.replace('MainTabs', {
+                    screen: 'HomeTab'
+                });
             }
         };
 

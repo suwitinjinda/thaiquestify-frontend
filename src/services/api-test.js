@@ -1,31 +1,22 @@
-// src/services/api-test.js
-import axios from 'axios';
-import { CONFIG } from '../utils/config';
+// test-api.js - Run this to test your connection
+import api, { testBackendConnection } from './services/api';
 
-const API_BASE_URL = CONFIG.API_BASE_URL;
+async function runTests() {
+  console.log('🧪 Running API connection tests...');
 
-export const testAPI = async () => {
+  // Test 1: Backend connection
+  const connectionTest = await testBackendConnection();
+  console.log('Test 1 - Backend Connection:', connectionTest.success ? '✅ PASS' : '❌ FAIL');
+
+  // Test 2: Make a sample request
   try {
-    console.log('🧪 Testing API Connection...');
-    
-    // Test 1: Health Check
-    const healthResponse = await axios.get(`${API_BASE_URL}/health`);
-    console.log('✅ Health Check:', healthResponse.data);
-    
-    // Test 2: Get Quests
-    const questsResponse = await axios.get(`${API_BASE_URL}/quests`);
-    console.log('✅ Quests Loaded:', questsResponse.data.length, 'quests');
-    
-    return {
-      success: true,
-      health: healthResponse.data,
-      questsCount: questsResponse.data.length
-    };
+    const response = await api.get('/test-connection');
+    console.log('Test 2 - Sample Request:', response.status === 200 ? '✅ PASS' : '❌ FAIL');
+    console.log('Response:', response.data);
   } catch (error) {
-    console.error('❌ API Test Failed:', error.message);
-    return {
-      success: false,
-      error: error.message
-    };
+    console.log('Test 2 - Sample Request: ❌ FAIL');
+    console.error('Error:', error.message);
   }
-};
+}
+
+runTests();

@@ -10,7 +10,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 import api from '../services/api';
 
 const UserQuestsScreen = ({ navigation }) => {
@@ -27,7 +27,7 @@ const UserQuestsScreen = ({ navigation }) => {
     try {
       setLoading(true);
       const response = await api.get(`/users/${user._id}/quests`);
-      
+
       if (response.data.success) {
         setUserQuests(response.data.data);
       }
@@ -54,22 +54,23 @@ const UserQuestsScreen = ({ navigation }) => {
         <Text style={styles.questName} numberOfLines={2}>{quest.name}</Text>
         <View style={[
           styles.statusBadge,
-          { backgroundColor: 
-            status === 'completed' ? '#28a745' :
-            status === 'pending' ? '#ffc107' : '#4a6baf'
+          {
+            backgroundColor:
+              status === 'completed' ? '#28a745' :
+                status === 'pending' ? '#ffc107' : '#4a6baf'
           }
         ]}>
           <Text style={styles.statusText}>
             {status === 'completed' ? 'สำเร็จ' :
-             status === 'pending' ? 'รอตรวจสอบ' : 'กำลังทำ'}
+              status === 'pending' ? 'รอตรวจสอบ' : 'กำลังทำ'}
           </Text>
         </View>
       </View>
-      
+
       <Text style={styles.questDescription} numberOfLines={2}>
         {quest.description}
       </Text>
-      
+
       <View style={styles.questFooter}>
         <Text style={styles.rewardText}>รางวัล: ฿{quest.rewardAmount}</Text>
         <Text style={styles.dateText}>

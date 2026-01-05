@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-    Dimensions,
+  Dimensions,
   Image
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
@@ -46,7 +46,7 @@ const WalletScreen = ({ navigation }) => {
   const loadWalletData = async () => {
     try {
       setLoading(true);
-      
+
       if (index === 0) {
         // Load points data
         const pointsResponse = await api.get(`/users/${user._id}/points`);
@@ -54,7 +54,7 @@ const WalletScreen = ({ navigation }) => {
           setPointsBalance(pointsResponse.data.data.balance);
           setPointsHistory(pointsResponse.data.data.history || []);
         }
-        
+
         const rewardsResponse = await api.get('/rewards/available');
         if (rewardsResponse.data.success) {
           setAvailableRewards(rewardsResponse.data.data);
@@ -113,7 +113,7 @@ const WalletScreen = ({ navigation }) => {
             <Text style={styles.methodTitle}>ทำเควส</Text>
             <Text style={styles.methodValue}>10-100 คะแนน</Text>
           </View>
-          
+
           <View style={styles.earnMethod}>
             <View style={[styles.methodIcon, { backgroundColor: '#d4edda' }]}>
               <Icon name="rate-review" size={20} color="#28a745" />
@@ -121,7 +121,7 @@ const WalletScreen = ({ navigation }) => {
             <Text style={styles.methodTitle}>เขียนรีวิว</Text>
             <Text style={styles.methodValue}>20-50 คะแนน</Text>
           </View>
-          
+
           <View style={styles.earnMethod}>
             <View style={[styles.methodIcon, { backgroundColor: '#fff3cd' }]}>
               <Icon name="share" size={20} color="#ffc107" />
@@ -129,7 +129,7 @@ const WalletScreen = ({ navigation }) => {
             <Text style={styles.methodTitle}>แชร์โซเชียล</Text>
             <Text style={styles.methodValue}>5-10 คะแนน</Text>
           </View>
-          
+
           <View style={styles.earnMethod}>
             <View style={[styles.methodIcon, { backgroundColor: '#f8d7da' }]}>
               <Icon name="card-giftcard" size={20} color="#dc3545" />
@@ -148,9 +148,9 @@ const WalletScreen = ({ navigation }) => {
             <Text style={styles.seeAllText}>ดูทั้งหมด</Text>
           </TouchableOpacity>
         </View>
-        
-        <ScrollView 
-          horizontal 
+
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.rewardsScroll}
         >
@@ -162,11 +162,11 @@ const WalletScreen = ({ navigation }) => {
                 </View>
                 <Text style={styles.rewardName} numberOfLines={2}>{reward.name}</Text>
                 <Text style={styles.rewardPoints}>{reward.pointsRequired} คะแนน</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.redeemButton,
-                    pointsBalance >= reward.pointsRequired 
-                      ? styles.redeemButtonActive 
+                    pointsBalance >= reward.pointsRequired
+                      ? styles.redeemButtonActive
                       : styles.redeemButtonDisabled
                   ]}
                   disabled={pointsBalance < reward.pointsRequired}
@@ -193,7 +193,7 @@ const WalletScreen = ({ navigation }) => {
             <Text style={styles.seeAllText}>ดูทั้งหมด</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.historyList}>
           {pointsHistory.length > 0 ? (
             pointsHistory.slice(0, 5).map((item, index) => (
@@ -240,39 +240,39 @@ const WalletScreen = ({ navigation }) => {
 
       {/* Quick Actions */}
       <View style={styles.quickActions}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.quickAction}
-          onPress={() => {/* TODO: Implement deposit */}}
+          onPress={() => {/* TODO: Implement deposit */ }}
         >
           <View style={[styles.actionIcon, { backgroundColor: '#28a745' }]}>
             <Icon name="add-circle" size={24} color="white" />
           </View>
           <Text style={styles.actionTitle}>เติมเงิน</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.quickAction}
-          onPress={() => {/* TODO: Implement withdraw */}}
+          onPress={() => {/* TODO: Implement withdraw */ }}
         >
           <View style={[styles.actionIcon, { backgroundColor: '#4a6baf' }]}>
             <Icon name="arrow-upward" size={24} color="white" />
           </View>
           <Text style={styles.actionTitle}>ถอนเงิน</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.quickAction}
-          onPress={() => {/* TODO: Implement transfer */}}
+          onPress={() => {/* TODO: Implement transfer */ }}
         >
           <View style={[styles.actionIcon, { backgroundColor: '#ffc107' }]}>
             <Icon name="swap-horiz" size={24} color="white" />
           </View>
           <Text style={styles.actionTitle}>โอนเงิน</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.quickAction}
-          onPress={() => {/* TODO: Implement history */}}
+          onPress={() => {/* TODO: Implement history */ }}
         >
           <View style={[styles.actionIcon, { backgroundColor: '#dc3545' }]}>
             <Icon name="history" size={24} color="white" />
@@ -289,8 +289,8 @@ const WalletScreen = ({ navigation }) => {
             withdrawalMethods.map((method, index) => (
               <TouchableOpacity key={index} style={styles.methodCard}>
                 <View style={styles.methodHeader}>
-                  <Icon name={method.type === 'bank' ? 'account-balance' : 'qr-code'} 
-                    size={24} color="#4a6baf" 
+                  <Icon name={method.type === 'bank' ? 'account-balance' : 'qr-code'}
+                    size={24} color="#4a6baf"
                   />
                   <Text style={styles.methodName}>{method.name}</Text>
                 </View>
@@ -319,7 +319,7 @@ const WalletScreen = ({ navigation }) => {
             <Text style={styles.seeAllText}>ดูทั้งหมด</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.transactionList}>
           {transactions.length > 0 ? (
             transactions.slice(0, 5).map((transaction, index) => (
@@ -371,7 +371,7 @@ const WalletScreen = ({ navigation }) => {
         <Text style={styles.loginText}>
           คุณต้องเข้าสู่ระบบเพื่อใช้งานกระเป๋าเงิน
         </Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.loginButton}
           onPress={() => navigation.navigate('Login')}
         >

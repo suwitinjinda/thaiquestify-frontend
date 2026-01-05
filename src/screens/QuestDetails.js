@@ -14,7 +14,7 @@ import {
   Image,
   Dimensions
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { shopAPI } from '../services/shopService';
 import api from '../services/api';
@@ -41,10 +41,10 @@ const QuestDetails = ({ route, navigation }) => {
     try {
       setLoading(true);
       console.log('🔍 Loading quest details:', questId);
-      
+
       // Try multiple endpoints to get quest data
       let questData = null;
-      
+
       try {
         // Try shopAPI first
         const response = await api.get(`/quests/${questId}`);
@@ -59,14 +59,14 @@ const QuestDetails = ({ route, navigation }) => {
           questData = altResponse.data;
         }
       }
-      
+
       if (!questData) {
         throw new Error('Quest not found');
       }
-      
+
       setQuest(questData);
       console.log('✅ Quest loaded:', questData.name);
-      
+
     } catch (error) {
       console.error('❌ Error loading quest details:', error);
       Alert.alert('Error', 'Failed to load quest details');
@@ -78,18 +78,18 @@ const QuestDetails = ({ route, navigation }) => {
 
   const checkParticipation = async () => {
     if (!user) return;
-    
+
     try {
       // Check if user is already participating in this quest
       const response = await api.get(`/users/${user._id}/quests`);
       const userQuests = response.data.data || [];
-      
-      const isParticipant = userQuests.some(userQuest => 
+
+      const isParticipant = userQuests.some(userQuest =>
         userQuest.questId === questId || userQuest.quest === questId
       );
-      
+
       setIsParticipating(isParticipant);
-      
+
       // Check if already verified
       if (isParticipant) {
         const participation = userQuests.find(q => q.questId === questId || q.quest === questId);
@@ -108,135 +108,135 @@ const QuestDetails = ({ route, navigation }) => {
 
   // FACEBOOK VERIFICATION FUNCTIONS
   // In QuestDetails.js - Update the handleFacebookVerification function
-const handleFacebookVerification = async () => {
-  if (!quest || quest.type !== 'facebook_follow') {
-    Alert.alert('Error', 'This is not a Facebook follow quest');
-    return;
-  }
+  const handleFacebookVerification = async () => {
+    if (!quest || quest.type !== 'facebook_follow') {
+      Alert.alert('Error', 'This is not a Facebook follow quest');
+      return;
+    }
 
-  const facebookPage = {
-    pageId: quest.facebookPageId || quest.requiredData?.facebookPageId,
-    pageName: quest.facebookPageName || quest.requiredData?.facebookPageName,
-    pageUrl: quest.facebookPageUrl || quest.requiredData?.facebookPageUrl
-  };
+    const facebookPage = {
+      pageId: quest.facebookPageId || quest.requiredData?.facebookPageId,
+      pageName: quest.facebookPageName || quest.requiredData?.facebookPageName,
+      pageUrl: quest.facebookPageUrl || quest.requiredData?.facebookPageUrl
+    };
 
-  if (!facebookPage.pageId) {
-    Alert.alert('Error', 'Facebook page information is not available');
-    return;
-  }
+    if (!facebookPage.pageId) {
+      Alert.alert('Error', 'Facebook page information is not available');
+      return;
+    }
 
-  setVerificationLoading(true);
+    setVerificationLoading(true);
 
-  try {
-    console.log(`🔍 Starting real Facebook verification for page: ${facebookPage.pageId}`);
-    
-    // Show permission explanation
-    Alert.alert(
-      'Facebook Permission Required',
-      'To verify that you follow the Facebook page, we need:\n\n1. Your public profile\n2. List of pages you like\n\nThis is required to check your page likes.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Continue', 
-          onPress: async () => {
-            try {
-              // First, mark as participating if not already
-              if (!isParticipating) {
-                const participated = await participateInQuest();
-                if (!participated) {
-                  setVerificationLoading(false);
-                  return;
+    try {
+      console.log(`🔍 Starting real Facebook verification for page: ${facebookPage.pageId}`);
+
+      // Show permission explanation
+      Alert.alert(
+        'Facebook Permission Required',
+        'To verify that you follow the Facebook page, we need:\n\n1. Your public profile\n2. List of pages you like\n\nThis is required to check your page likes.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Continue',
+            onPress: async () => {
+              try {
+                // First, mark as participating if not already
+                if (!isParticipating) {
+                  const participated = await participateInQuest();
+                  if (!participated) {
+                    setVerificationLoading(false);
+                    return;
+                  }
                 }
-              }
 
-              // REAL FACEBOOK VERIFICATION
-              const verificationResult = await FacebookService.verifyFacebookFollow(facebookPage.pageId);
-              
-              if (verificationResult.success && verificationResult.isFollowing) {
-                // SUCCESS: User follows the page
-                console.log('✅ Facebook verification successful!');
-                
-                // Prepare verification data for backend
-                const verificationData = {
-                  ...verificationResult.verificationData,
-                  ...verificationResult.userData,
-                  pageId: facebookPage.pageId,
-                  pageName: facebookPage.pageName,
-                  verificationMethod: 'facebook_api',
-                  timestamp: new Date().toISOString()
-                };
-                
+                // REAL FACEBOOK VERIFICATION
+                const verificationResult = await FacebookService.verifyFacebookFollow(facebookPage.pageId);
+
+                if (verificationResult.success && verificationResult.isFollowing) {
+                  // SUCCESS: User follows the page
+                  console.log('✅ Facebook verification successful!');
+
+                  // Prepare verification data for backend
+                  const verificationData = {
+                    ...verificationResult.verificationData,
+                    ...verificationResult.userData,
+                    pageId: facebookPage.pageId,
+                    pageName: facebookPage.pageName,
+                    verificationMethod: 'facebook_api',
+                    timestamp: new Date().toISOString()
+                  };
+
+                  Alert.alert(
+                    'Success! 🎉',
+                    `Verified! You follow ${facebookPage.pageName}.`,
+                    [
+                      {
+                        text: 'Claim Reward',
+                        onPress: () => claimQuestReward(verificationData)
+                      }
+                    ]
+                  );
+
+                } else if (verificationResult.success && !verificationResult.isFollowing) {
+                  // User doesn't follow the page
+                  Alert.alert(
+                    'Not Following Yet',
+                    `You need to follow "${facebookPage.pageName}" first.\n\nPlease:\n1. Open the Facebook page\n2. Click "Like" or "Follow"\n3. Try verification again`,
+                    [
+                      {
+                        text: 'Open Facebook Page',
+                        onPress: () => Linking.openURL(
+                          facebookPage.pageUrl ||
+                          `https://facebook.com/${facebookPage.pageId}`
+                        ).catch(() => {
+                          Alert.alert('Cannot Open Facebook', 'Please install Facebook app');
+                        })
+                      },
+                      {
+                        text: 'Try Again',
+                        onPress: () => handleFacebookVerification()
+                      },
+                      { text: 'Cancel', style: 'cancel' }
+                    ]
+                  );
+
+                } else {
+                  // Verification failed
+                  Alert.alert(
+                    'Verification Failed',
+                    verificationResult.error || 'Facebook verification failed. Please try again.',
+                    [{ text: 'OK' }]
+                  );
+                }
+
+              } catch (error) {
+                console.error('Verification error:', error);
                 Alert.alert(
-                  'Success! 🎉',
-                  `Verified! You follow ${facebookPage.pageName}.`,
-                  [
-                    {
-                      text: 'Claim Reward',
-                      onPress: () => claimQuestReward(verificationData)
-                    }
-                  ]
+                  'Error',
+                  error.message || 'Facebook verification failed. Please try again.'
                 );
-                
-              } else if (verificationResult.success && !verificationResult.isFollowing) {
-                // User doesn't follow the page
-                Alert.alert(
-                  'Not Following Yet',
-                  `You need to follow "${facebookPage.pageName}" first.\n\nPlease:\n1. Open the Facebook page\n2. Click "Like" or "Follow"\n3. Try verification again`,
-                  [
-                    { 
-                      text: 'Open Facebook Page', 
-                      onPress: () => Linking.openURL(
-                        facebookPage.pageUrl || 
-                        `https://facebook.com/${facebookPage.pageId}`
-                      ).catch(() => {
-                        Alert.alert('Cannot Open Facebook', 'Please install Facebook app');
-                      })
-                    },
-                    { 
-                      text: 'Try Again', 
-                      onPress: () => handleFacebookVerification() 
-                    },
-                    { text: 'Cancel', style: 'cancel' }
-                  ]
-                );
-                
-              } else {
-                // Verification failed
-                Alert.alert(
-                  'Verification Failed',
-                  verificationResult.error || 'Facebook verification failed. Please try again.',
-                  [{ text: 'OK' }]
-                );
+              } finally {
+                setVerificationLoading(false);
               }
-              
-            } catch (error) {
-              console.error('Verification error:', error);
-              Alert.alert(
-                'Error',
-                error.message || 'Facebook verification failed. Please try again.'
-              );
-            } finally {
-              setVerificationLoading(false);
             }
           }
-        }
-      ]
-    );
-    
-  } catch (error) {
-    setVerificationLoading(false);
-    console.error('Verification setup error:', error);
-    Alert.alert('Error', 'Failed to start verification');
-  }
-};
+        ]
+      );
+
+    } catch (error) {
+      setVerificationLoading(false);
+      console.error('Verification setup error:', error);
+      Alert.alert('Error', 'Failed to start verification');
+    }
+  };
 
   const verifyFacebookFollow = async (facebookPage) => {
     // This is a mock function - you'll need to implement real Facebook SDK
     // For now, we'll simulate verification
-    
+
     // TODO: Replace with real Facebook SDK implementation
     // const facebookData = await FacebookService.loginAndVerify(facebookPage.pageId);
-    
+
     // Mock verification (always returns true for testing)
     const mockVerification = {
       success: true,
@@ -248,7 +248,7 @@ const handleFacebookVerification = async () => {
         pageName: facebookPage.pageName
       }
     };
-    
+
     return mockVerification;
   };
 
@@ -257,7 +257,7 @@ const handleFacebookVerification = async () => {
       const response = await api.post(`/quests/${questId}/participate`, {
         userId: user._id
       });
-      
+
       if (response.data.success) {
         setIsParticipating(true);
         console.log('✅ Now participating in quest');
@@ -277,7 +277,7 @@ const handleFacebookVerification = async () => {
         userId: user._id,
         verificationData: verificationData
       });
-      
+
       if (response.data.success) {
         setIsVerified(true);
         Alert.alert(
@@ -294,11 +294,11 @@ const handleFacebookVerification = async () => {
 
   const handleFollowOnFacebook = () => {
     if (!quest) return;
-    
-    const pageUrl = quest.facebookPageUrl || 
-                   quest.requiredData?.facebookPageUrl || 
-                   `https://facebook.com/${quest.facebookPageId}`;
-    
+
+    const pageUrl = quest.facebookPageUrl ||
+      quest.requiredData?.facebookPageUrl ||
+      `https://facebook.com/${quest.facebookPageId}`;
+
     Linking.openURL(pageUrl).catch(() => {
       Alert.alert('Error', 'Could not open Facebook. Please install Facebook app.');
     });
@@ -389,7 +389,7 @@ const handleFacebookVerification = async () => {
     return (
       <View style={styles.participationCard}>
         <Text style={styles.participationTitle}>📘 Facebook Follow Quest</Text>
-        
+
         {/* Facebook Page Info */}
         <View style={styles.facebookInfo}>
           <Icon name="thumb-up" size={24} color="#1877f2" />
@@ -410,25 +410,25 @@ const handleFacebookVerification = async () => {
               <Text style={styles.stepText}>{step}</Text>
             </View>
           )) || (
-            <>
-              <View style={styles.instructionStep}>
-                <Text style={styles.stepNumber}>1</Text>
-                <Text style={styles.stepText}>Follow the Facebook page above</Text>
-              </View>
-              <View style={styles.instructionStep}>
-                <Text style={styles.stepNumber}>2</Text>
-                <Text style={styles.stepText}>Click "Verify Now" button</Text>
-              </View>
-              <View style={styles.instructionStep}>
-                <Text style={styles.stepNumber}>3</Text>
-                <Text style={styles.stepText}>Login with Facebook</Text>
-              </View>
-              <View style={styles.instructionStep}>
-                <Text style={styles.stepNumber}>4</Text>
-                <Text style={styles.stepText}>Get rewarded automatically</Text>
-              </View>
-            </>
-          )}
+              <>
+                <View style={styles.instructionStep}>
+                  <Text style={styles.stepNumber}>1</Text>
+                  <Text style={styles.stepText}>Follow the Facebook page above</Text>
+                </View>
+                <View style={styles.instructionStep}>
+                  <Text style={styles.stepNumber}>2</Text>
+                  <Text style={styles.stepText}>Click "Verify Now" button</Text>
+                </View>
+                <View style={styles.instructionStep}>
+                  <Text style={styles.stepNumber}>3</Text>
+                  <Text style={styles.stepText}>Login with Facebook</Text>
+                </View>
+                <View style={styles.instructionStep}>
+                  <Text style={styles.stepNumber}>4</Text>
+                  <Text style={styles.stepText}>Get rewarded automatically</Text>
+                </View>
+              </>
+            )}
         </View>
 
         {/* Status Indicators */}
@@ -451,15 +451,15 @@ const handleFacebookVerification = async () => {
         <View style={styles.actionButtons}>
           {!isVerified && (
             <>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.followButton}
                 onPress={handleFollowOnFacebook}
               >
                 <Icon name="facebook" size={20} color="white" />
                 <Text style={styles.followButtonText}>Open Facebook Page</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[styles.verifyButton, verificationLoading && styles.buttonDisabled]}
                 onPress={handleFacebookVerification}
                 disabled={verificationLoading}
@@ -511,7 +511,7 @@ const handleFacebookVerification = async () => {
       <View style={styles.errorContainer}>
         <Text style={styles.errorTitle}>Quest Not Found</Text>
         <Text style={styles.errorText}>The requested quest could not be found.</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -527,7 +527,7 @@ const handleFacebookVerification = async () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -547,7 +547,7 @@ const handleFacebookVerification = async () => {
         <View style={styles.card}>
           <Text style={styles.questName}>{quest.name}</Text>
           <Text style={styles.questDescription}>{quest.description}</Text>
-          
+
           {/* Show Quest Type Badge */}
           {quest.type === 'facebook_follow' && (
             <View style={styles.typeBadge}>
@@ -555,7 +555,7 @@ const handleFacebookVerification = async () => {
               <Text style={styles.typeBadgeText}>Facebook Follow Quest</Text>
             </View>
           )}
-          
+
           <View style={styles.metaInfo}>
             <View style={styles.metaItem}>
               <Text style={styles.metaLabel}>Quest ID</Text>
@@ -581,11 +581,11 @@ const handleFacebookVerification = async () => {
               <Text style={styles.statNumber}>{participationRate}%</Text>
               <Text style={styles.statLabel}>Filled</Text>
               <View style={styles.progressBar}>
-                <View 
+                <View
                   style={[
-                    styles.progressFill, 
+                    styles.progressFill,
                     { width: `${participationRate}%` }
-                  ]} 
+                  ]}
                 />
               </View>
             </View>
@@ -620,11 +620,11 @@ const handleFacebookVerification = async () => {
           <View style={styles.budgetProgress}>
             <Text style={styles.budgetLabel}>Budget Utilization: {budgetUtilization}%</Text>
             <View style={styles.progressBar}>
-              <View 
+              <View
                 style={[
-                  styles.progressFill, 
+                  styles.progressFill,
                   { width: `${budgetUtilization}%`, backgroundColor: '#28a745' }
-                ]} 
+                ]}
               />
             </View>
           </View>
@@ -635,23 +635,23 @@ const handleFacebookVerification = async () => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>⚡ Shop Actions</Text>
             <View style={styles.actionsGrid}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.actionButton, styles.primaryAction]}
                 onPress={handleShareQR}
               >
                 <Text style={styles.actionButtonText}>Share QR Code</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[styles.actionButton, styles.secondaryAction]}
                 onPress={handleViewSubmissions}
               >
                 <Text style={styles.actionButtonText}>View Submissions ({quest.submissions?.length || 0})</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[
-                  styles.actionButton, 
+                  styles.actionButton,
                   quest.isActive ? styles.warningAction : styles.successAction
                 ]}
                 onPress={handleToggleActive}

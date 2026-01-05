@@ -9,9 +9,9 @@ import {
   ActivityIndicator,
   RefreshControl,
   Dimensions,
-  FlatList,Image
+  FlatList, Image
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -38,13 +38,13 @@ const QuestScreen = ({ navigation }) => {
   const loadQuests = async () => {
     try {
       setLoading(true);
-      
+
       // Load all quests
       const response = await api.get('/quests/active');
       if (response.data.success) {
         setQuests(response.data.data);
       }
-      
+
       // Load user's quests if logged in
       if (user) {
         const userResponse = await api.get(`/users/${user._id}/quests`);
@@ -67,21 +67,21 @@ const QuestScreen = ({ navigation }) => {
 
   const filterQuests = () => {
     let filtered = [...quests];
-    
+
     // Filter by search query
     if (searchQuery) {
-      filtered = filtered.filter(quest => 
+      filtered = filtered.filter(quest =>
         quest.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         quest.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         quest.province.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    
+
     // Filter by category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(quest => quest.category === selectedCategory);
     }
-    
+
     setFilteredQuests(filtered);
   };
 
@@ -119,24 +119,24 @@ const QuestScreen = ({ navigation }) => {
   const QuestCard = ({ quest }) => {
     const isParticipating = userQuests.some(q => q._id === quest._id);
     const isCompleted = userQuests.some(q => q._id === quest._id && q.status === 'completed');
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.questCard}
         onPress={() => navigation.navigate('QuestDetails', { questId: quest._id })}
       >
         <View style={styles.questHeader}>
           <View style={styles.questCategory}>
-            <Icon 
-              name={getCategoryIcon(quest.category)} 
-              size={16} 
-              color={getCategoryColor(quest.category)} 
+            <Icon
+              name={getCategoryIcon(quest.category)}
+              size={16}
+              color={getCategoryColor(quest.category)}
             />
             <Text style={[styles.categoryText, { color: getCategoryColor(quest.category) }]}>
               {quest.category}
             </Text>
           </View>
-          
+
           {isParticipating && (
             <View style={[
               styles.statusBadge,
@@ -148,28 +148,28 @@ const QuestScreen = ({ navigation }) => {
             </View>
           )}
         </View>
-        
+
         <Text style={styles.questTitle} numberOfLines={2}>{quest.name}</Text>
         <Text style={styles.questDescription} numberOfLines={3}>{quest.description}</Text>
-        
+
         <View style={styles.questInfo}>
           <View style={styles.infoRow}>
             <Icon name="store" size={14} color="#666" />
             <Text style={styles.infoText}>{quest.shopName}</Text>
           </View>
-          
+
           <View style={styles.infoRow}>
             <Icon name="location-on" size={14} color="#666" />
             <Text style={styles.infoText}>{quest.province}</Text>
           </View>
         </View>
-        
+
         <View style={styles.rewardSection}>
           <View style={styles.rewardInfo}>
             <Text style={styles.rewardAmount}>฿{quest.rewardAmount}</Text>
             <Text style={styles.rewardPoints}>{quest.rewardPoints} คะแนน</Text>
           </View>
-          
+
           <View style={styles.participantInfo}>
             <Icon name="people" size={14} color="#666" />
             <Text style={styles.participantText}>
@@ -177,8 +177,8 @@ const QuestScreen = ({ navigation }) => {
             </Text>
           </View>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[
             styles.actionButton,
             isParticipating ? styles.secondaryButton : styles.primaryButton
@@ -234,8 +234,8 @@ const QuestScreen = ({ navigation }) => {
         </View>
 
         {/* Categories */}
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.categoriesScroll}
           contentContainerStyle={styles.categoriesContainer}
@@ -249,10 +249,10 @@ const QuestScreen = ({ navigation }) => {
               ]}
               onPress={() => setSelectedCategory(category.id)}
             >
-              <Icon 
-                name={category.icon} 
-                size={20} 
-                color={selectedCategory === category.id ? '#4a6baf' : '#666'} 
+              <Icon
+                name={category.icon}
+                size={20}
+                color={selectedCategory === category.id ? '#4a6baf' : '#666'}
               />
               <Text style={[
                 styles.categoryButtonText,
@@ -287,9 +287,9 @@ const QuestScreen = ({ navigation }) => {
               <Text style={styles.questsCount}>
                 {filteredQuests.length} เควส
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.filterButton}
-                onPress={() => {/* TODO: Implement filter modal */}}
+                onPress={() => {/* TODO: Implement filter modal */ }}
               >
                 <Icon name="filter-list" size={20} color="#666" />
                 <Text style={styles.filterButtonText}>ตัวกรอง</Text>
@@ -301,7 +301,7 @@ const QuestScreen = ({ navigation }) => {
 
       {/* Create Quest Button (for shops) */}
       {user?.userType === 'shop' && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.createButton}
           onPress={() => navigation.navigate('ShopCreateQuest')}
         >

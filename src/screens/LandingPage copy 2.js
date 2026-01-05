@@ -13,7 +13,7 @@ import {
   Image,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 import api from '../services/api';
 import { provinceGroups } from '../data/thaiProvinces';
 
@@ -39,161 +39,161 @@ const LandingPage = ({ navigation }) => {
       duration: 1000,
       useNativeDriver: true,
     }).start();
-    
+
     loadDashboardData();
   }, []);
 
   const loadDashboardData = async () => {
-  try {
-    setLoading(true);
-    console.log('🔄 Loading dashboard data...');
-    
-    // Use mock data instead of API calls
-    setTimeout(() => {
-      setRegionStats(getFallbackRegionStats());
-      setHotQuests(getFallbackHotQuests());
+    try {
+      setLoading(true);
+      console.log('🔄 Loading dashboard data...');
+
+      // Use mock data instead of API calls
+      setTimeout(() => {
+        setRegionStats(getFallbackRegionStats());
+        setHotQuests(getFallbackHotQuests());
+        setLoading(false);
+      }, 1000);
+
+    } catch (error) {
+      console.error('❌ Error loading dashboard data:', error);
       setLoading(false);
-    }, 1000);
-    
-  } catch (error) {
-    console.error('❌ Error loading dashboard data:', error);
-    setLoading(false);
-  }
-};
+    }
+  };
 
   // Fetch quest statistics by region
   const fetchRegionStats = async () => {
-  try {
-    console.log('📊 Fetching REAL region statistics...');
-    
-    const response = await api.get('/quests/stats/by-region');
-    console.log('Real region stats response:', response.data);
+    try {
+      console.log('📊 Fetching REAL region statistics...');
 
-    if (response.data.success && response.data.data) {
-      setRegionStats(response.data.data);
-    } else {
-      console.log('⚠️ Region stats API returned unsuccessful');
-      // You can choose to show empty state or keep previous data
+      const response = await api.get('/quests/stats/by-region');
+      console.log('Real region stats response:', response.data);
+
+      if (response.data.success && response.data.data) {
+        setRegionStats(response.data.data);
+      } else {
+        console.log('⚠️ Region stats API returned unsuccessful');
+        // You can choose to show empty state or keep previous data
+        setRegionStats({});
+      }
+    } catch (error) {
+      console.error('❌ Error fetching real region stats:', error);
+      // Show empty state instead of fallback data
       setRegionStats({});
     }
-  } catch (error) {
-    console.error('❌ Error fetching real region stats:', error);
-    // Show empty state instead of fallback data
-    setRegionStats({});
-  }
-};
+  };
 
 
   // Fetch hot quests
   const fetchHotQuests = async () => {
-  try {
-    console.log('🔥 Fetching hot quests...');
-    
-    const response = await api.get('/quests/hot');
+    try {
+      console.log('🔥 Fetching hot quests...');
 
-    if (response.data.success && response.data.data) {
-      const quests = response.data.data;
-      
-      const transformedQuests = quests.map(quest => ({
-        _id: quest._id?.$oid || quest._id || Math.random().toString(),
-        name: quest.name || 'เควสใหม่',
-        description: quest.description || 'คำอธิบายเควส',
-        rewardAmount: quest.rewardAmount || 0,
-        rewardPoints: quest.rewardPoints || 0,
-        province: quest.province || 'กรุงเทพมหานคร',
-        shopName: quest.shopName || quest.shop?.shopName || 'ร้านค้า',
-        currentParticipants: quest.currentParticipants || 0,
-        maxParticipants: quest.maxParticipants || 10,
-        category: quest.category || 'general'
-      }));
+      const response = await api.get('/quests/hot');
 
-      setHotQuests(transformedQuests);
-    } else {
-      console.log('⚠️ Using fallback hot quests');
+      if (response.data.success && response.data.data) {
+        const quests = response.data.data;
+
+        const transformedQuests = quests.map(quest => ({
+          _id: quest._id?.$oid || quest._id || Math.random().toString(),
+          name: quest.name || 'เควสใหม่',
+          description: quest.description || 'คำอธิบายเควส',
+          rewardAmount: quest.rewardAmount || 0,
+          rewardPoints: quest.rewardPoints || 0,
+          province: quest.province || 'กรุงเทพมหานคร',
+          shopName: quest.shopName || quest.shop?.shopName || 'ร้านค้า',
+          currentParticipants: quest.currentParticipants || 0,
+          maxParticipants: quest.maxParticipants || 10,
+          category: quest.category || 'general'
+        }));
+
+        setHotQuests(transformedQuests);
+      } else {
+        console.log('⚠️ Using fallback hot quests');
+        setHotQuests(getFallbackHotQuests());
+      }
+    } catch (error) {
+      console.error('❌ Error fetching hot quests:', error);
+      // Use fallback data
       setHotQuests(getFallbackHotQuests());
     }
-  } catch (error) {
-    console.error('❌ Error fetching hot quests:', error);
-    // Use fallback data
-    setHotQuests(getFallbackHotQuests());
-  }
-};
+  };
 
   // Add fallback data functions
-const getFallbackRegionStats = () => {
-  return {
-    "กลาง": {
-      activeQuests: 17,
-      popularProvinces: ["กรุงเทพมหานคร", "นนทบุรี", "ปทุมธานี"],
-      totalShops: 6,
-      trending: "เทรนด์คาเฟ่และร้านอาหารแนวๆ"
-    },
-    "ตะวันตก": {
-      activeQuests: 24,
-      popularProvinces: ["กาญจนบุรี", "ราชบุรี", "เพชรบุรี"],
-      totalShops: 7,
-      trending: "เทรนด์เที่ยวธรรมชาติและประวัติศาสตร์"
-    },
-    "ตะวันออก": {
-      activeQuests: 23,
-      popularProvinces: ["ชลบุรี", "ระยอง", "จันทบุรี"],
-      totalShops: 6,
-      trending: "เทรนด์เที่ยวทะเลและรีสอร์ท"
-    },
-    "ตะวันออกเฉียงเหนือ": {
-      activeQuests: 6,
-      popularProvinces: ["ขอนแก่น", "อุบลราชธานี", "นครราชสีมา"],
-      totalShops: 15,
-      trending: "เทรนด์ร้านอาหารอีสานและตลาดนัดชุมชน"
-    },
-    "เหนือ": {
-      activeQuests: 5,
-      popularProvinces: ["เชียงใหม่", "เชียงราย", "ลำปาง"],
-      totalShops: 16,
-      trending: "เทรนด์เช็คอินร้านกาแฟและสถานที่ท่องเที่ยวธรรมชาติ"
-    },
-    "ใต้": {
-      activeQuests: 13,
-      popularProvinces: ["ภูเก็ต", "สงขลา", "นครศรีธรรมราช"],
-      totalShops: 11,
-      trending: "เทรนด์ทะเลใต้และอาหารทะเลสด"
-    }
+  const getFallbackRegionStats = () => {
+    return {
+      "กลาง": {
+        activeQuests: 17,
+        popularProvinces: ["กรุงเทพมหานคร", "นนทบุรี", "ปทุมธานี"],
+        totalShops: 6,
+        trending: "เทรนด์คาเฟ่และร้านอาหารแนวๆ"
+      },
+      "ตะวันตก": {
+        activeQuests: 24,
+        popularProvinces: ["กาญจนบุรี", "ราชบุรี", "เพชรบุรี"],
+        totalShops: 7,
+        trending: "เทรนด์เที่ยวธรรมชาติและประวัติศาสตร์"
+      },
+      "ตะวันออก": {
+        activeQuests: 23,
+        popularProvinces: ["ชลบุรี", "ระยอง", "จันทบุรี"],
+        totalShops: 6,
+        trending: "เทรนด์เที่ยวทะเลและรีสอร์ท"
+      },
+      "ตะวันออกเฉียงเหนือ": {
+        activeQuests: 6,
+        popularProvinces: ["ขอนแก่น", "อุบลราชธานี", "นครราชสีมา"],
+        totalShops: 15,
+        trending: "เทรนด์ร้านอาหารอีสานและตลาดนัดชุมชน"
+      },
+      "เหนือ": {
+        activeQuests: 5,
+        popularProvinces: ["เชียงใหม่", "เชียงราย", "ลำปาง"],
+        totalShops: 16,
+        trending: "เทรนด์เช็คอินร้านกาแฟและสถานที่ท่องเที่ยวธรรมชาติ"
+      },
+      "ใต้": {
+        activeQuests: 13,
+        popularProvinces: ["ภูเก็ต", "สงขลา", "นครศรีธรรมราช"],
+        totalShops: 11,
+        trending: "เทรนด์ทะเลใต้และอาหารทะเลสด"
+      }
+    };
   };
-};
 
-const getFallbackHotQuests = () => {
-  return [
-    {
-      _id: '1',
-      name: 'Facebook Check-in at Our Store',
-      description: 'Visit our physical store location and check-in on Facebook',
-      rewardAmount: 20,
-      rewardPoints: 100,
-      province: 'กรุงเทพมหานคร',
-      shopName: 'ร้านตัวอย่าง 1',
-      currentParticipants: 0,
-      maxParticipants: 20,
-      category: 'social-media'
-    },
-    {
-      _id: '2',
-      name: 'รีวิวร้านอาหาร',
-      description: 'ทานอาหารที่ร้านและเขียนรีวิวบน Google Maps',
-      rewardAmount: 50,
-      rewardPoints: 150,
-      province: 'เชียงใหม่',
-      shopName: 'ร้านอาหารเดอะริเวอร์',
-      currentParticipants: 5,
-      maxParticipants: 15,
-      category: 'review'
-    }
-  ];
-};
-  
+  const getFallbackHotQuests = () => {
+    return [
+      {
+        _id: '1',
+        name: 'Facebook Check-in at Our Store',
+        description: 'Visit our physical store location and check-in on Facebook',
+        rewardAmount: 20,
+        rewardPoints: 100,
+        province: 'กรุงเทพมหานคร',
+        shopName: 'ร้านตัวอย่าง 1',
+        currentParticipants: 0,
+        maxParticipants: 20,
+        category: 'social-media'
+      },
+      {
+        _id: '2',
+        name: 'รีวิวร้านอาหาร',
+        description: 'ทานอาหารที่ร้านและเขียนรีวิวบน Google Maps',
+        rewardAmount: 50,
+        rewardPoints: 150,
+        province: 'เชียงใหม่',
+        shopName: 'ร้านอาหารเดอะริเวอร์',
+        currentParticipants: 5,
+        maxParticipants: 15,
+        category: 'review'
+      }
+    ];
+  };
+
   // Fetch user statistics
   const fetchUserStats = async () => {
     if (!user) return;
-    
+
     try {
       const response = await api.get(`/users/${user._id}/stats`);
       if (response.data.success) {
@@ -206,46 +206,46 @@ const getFallbackHotQuests = () => {
   };
 
   // Fetch shops by region
-const fetchShopsByRegion = async (region) => {
-  try {
-    console.log(`🔄 Fetching shops for region: ${region}`);
-    
-    const response = await api.get(`/shop/region/${region}`);
-    
-    if (response.data.success) {
-      console.log(`✅ Found ${response.data.data.length} shops in ${region}`);
-      return response.data.data;
-    } else {
-      console.log('❌ No shops found for region:', region);
-      return [];
-    }
-  } catch (error) {
-    console.error(`❌ Error fetching shops for ${region}:`, error);
-    return [];
-  }
-};
+  const fetchShopsByRegion = async (region) => {
+    try {
+      console.log(`🔄 Fetching shops for region: ${region}`);
 
-// Fetch shops by province
-const fetchShopsByProvince = async (province) => {
-  try {
-    console.log(`🔄 Fetching shops for province: ${province}`);
-    
-    const response = await api.get('/shop/active', {
-      params: { province: province }
-    });
-    
-    if (response.data.success) {
-      console.log(`✅ Found ${response.data.data.length} shops in ${province}`);
-      return response.data.data;
-    } else {
-      console.log('❌ No shops found for province:', province);
+      const response = await api.get(`/shop/region/${region}`);
+
+      if (response.data.success) {
+        console.log(`✅ Found ${response.data.data.length} shops in ${region}`);
+        return response.data.data;
+      } else {
+        console.log('❌ No shops found for region:', region);
+        return [];
+      }
+    } catch (error) {
+      console.error(`❌ Error fetching shops for ${region}:`, error);
       return [];
     }
-  } catch (error) {
-    console.error(`❌ Error fetching shops for ${province}:`, error);
-    return [];
-  }
-};
+  };
+
+  // Fetch shops by province
+  const fetchShopsByProvince = async (province) => {
+    try {
+      console.log(`🔄 Fetching shops for province: ${province}`);
+
+      const response = await api.get('/shop/active', {
+        params: { province: province }
+      });
+
+      if (response.data.success) {
+        console.log(`✅ Found ${response.data.data.length} shops in ${province}`);
+        return response.data.data;
+      } else {
+        console.log('❌ No shops found for province:', province);
+        return [];
+      }
+    } catch (error) {
+      console.error(`❌ Error fetching shops for ${province}:`, error);
+      return [];
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -254,43 +254,43 @@ const fetchShopsByProvince = async (province) => {
   };
 
   const handleRegionPress = async (region) => {
-  try {
-    console.log(`📍 Selected region: ${region}`);
-    
-    // Fetch shops for the selected region
-    const shops = await fetchShopsByRegion(region);
-    // console.log("shop55:",shops)
-    // Navigate to RegionQuests with both region and shops data
-    navigation.navigate('RegionQuests', {       
-      region: region,
-      shops: shops,
-      regionStats: regionStats[region] || {}
-    });
-    
-  } catch (error) {
-    console.error('❌ Error in handleRegionPress:', error);
-    // Navigate with empty shops data as fallback
-    navigation.navigate('RegionQuests', { 
-      region: region,
-      shops: [],
-      regionStats: regionStats[region] || {}
-    });
-  }
-};
+    try {
+      console.log(`📍 Selected region: ${region}`);
+
+      // Fetch shops for the selected region
+      const shops = await fetchShopsByRegion(region);
+      // console.log("shop55:",shops)
+      // Navigate to RegionQuests with both region and shops data
+      navigation.navigate('RegionQuests', {
+        region: region,
+        shops: shops,
+        regionStats: regionStats[region] || {}
+      });
+
+    } catch (error) {
+      console.error('❌ Error in handleRegionPress:', error);
+      // Navigate with empty shops data as fallback
+      navigation.navigate('RegionQuests', {
+        region: region,
+        shops: [],
+        regionStats: regionStats[region] || {}
+      });
+    }
+  };
 
   const getQuestDensityColor = (questCount) => {
-  if (questCount > 15) return '#28a745'; // High - Green
-  if (questCount > 8) return '#ffc107';  // Medium - Yellow
-  if (questCount > 0) return '#fd7e14';  // Low - Orange
-  return '#6c757d'; // None - Gray
-};
+    if (questCount > 15) return '#28a745'; // High - Green
+    if (questCount > 8) return '#ffc107';  // Medium - Yellow
+    if (questCount > 0) return '#fd7e14';  // Low - Orange
+    return '#6c757d'; // None - Gray
+  };
 
-const getQuestDensityText = (questCount) => {
-  if (questCount > 15) return 'เควสเยอะมาก 🎉';
-  if (questCount > 8) return 'เควสปานกลาง 👍';
-  if (questCount > 0) return 'เควสน้อย 👀';
-  return 'ยังไม่มีเควส';
-};
+  const getQuestDensityText = (questCount) => {
+    if (questCount > 15) return 'เควสเยอะมาก 🎉';
+    if (questCount > 8) return 'เควสปานกลาง 👍';
+    if (questCount > 0) return 'เควสน้อย 👀';
+    return 'ยังไม่มีเควส';
+  };
 
   const getQuestEmoji = (category) => {
     switch (category) {
@@ -304,104 +304,104 @@ const getQuestDensityText = (questCount) => {
   };
 
   // In your LandingPage component - Update the RegionCard component
-const RegionCard = ({ region }) => {
-  const stats = regionStats[region] || {
-    activeQuests: 0,
-    popularProvinces: provinceGroups[region]?.slice(0, 3) || [],
-    totalShops: 0,
-    trending: 'กำลังโหลดข้อมูล...'
-  };
-  console.log(stats)
-  const hasQuests = stats.activeQuests > 0;
-  const hasShops = stats.totalShops > 0;
+  const RegionCard = ({ region }) => {
+    const stats = regionStats[region] || {
+      activeQuests: 0,
+      popularProvinces: provinceGroups[region]?.slice(0, 3) || [],
+      totalShops: 0,
+      trending: 'กำลังโหลดข้อมูล...'
+    };
+    console.log(stats)
+    const hasQuests = stats.activeQuests > 0;
+    const hasShops = stats.totalShops > 0;
 
-  return (
-    <TouchableOpacity 
-      style={[styles.regionCard, selectedRegion === region && styles.regionCardSelected]}
-      onPress={() => handleRegionPress(region)}
-    >
-      <View style={styles.regionHeader}>
-        <Text style={styles.regionName}>ภาค{region}</Text>
-        <View style={styles.statsRow}>
-          {/* <View style={[styles.questCountBadge, { 
+    return (
+      <TouchableOpacity
+        style={[styles.regionCard, selectedRegion === region && styles.regionCardSelected]}
+        onPress={() => handleRegionPress(region)}
+      >
+        <View style={styles.regionHeader}>
+          <Text style={styles.regionName}>ภาค{region}</Text>
+          <View style={styles.statsRow}>
+            {/* <View style={[styles.questCountBadge, { 
             backgroundColor: hasQuests ? getQuestDensityColor(stats.activeQuests) : '#6c757d' 
           }]}>
             <Text style={styles.questCountText}>
               {stats.activeQuests} เควส
             </Text>
           </View> */}
-          <View style={[styles.shopCountBadge, { 
-            backgroundColor: hasShops ? '#28a745' : '#6c757d' 
-          }]}>
-            <Text style={styles.shopCountText}>
-              {stats.totalShops} ร้านค้า
-            </Text>
+            <View style={[styles.shopCountBadge, {
+              backgroundColor: hasShops ? '#28a745' : '#6c757d'
+            }]}>
+              <Text style={styles.shopCountText}>
+                {stats.totalShops} ร้านค้า
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-      
-      <Text style={styles.questDensityText}>
-        {hasQuests ? getQuestDensityText(stats.activeQuests) : 'ยังไม่มีเควส'}
-        {hasShops && !hasQuests && ' (มีร้านค้ารอเควส)'}
-      </Text>
-      
-      <Text style={styles.trendingText}>📈 {stats.trending}</Text>
-      
-      <View style={styles.popularProvinces}>
-        <Text style={styles.popularTitle}>
-          {hasQuests ? 'จังหวัดที่มีเควส:' : 'จังหวัดในภาค:'}
-        </Text>
-        <View style={styles.provinceTags}>
-          {stats.popularProvinces.map((province, index) => (
-            <View key={index} style={[
-              styles.provinceTag,
-              hasQuests && styles.provinceTagActive
-            ]}>
-              <Text style={styles.provinceTagText}>{province}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-      
-      <View style={styles.progressContainer}>
-        <Text style={styles.progressLabel}>
-          {hasQuests ? 'ความหนาแน่นของเควส' : 'รอเควสจากร้านค้า'}
-        </Text>
-        <View style={styles.progressBar}>
-          <View 
-            style={[
-              styles.progressFill,
-              { 
-                width: hasQuests ? `${Math.min((stats.activeQuests / 25) * 100, 100)}%` : '0%',
-                backgroundColor: hasQuests ? getQuestDensityColor(stats.activeQuests) : '#6c757d'
-              }
-            ]} 
-          />
-        </View>
-        {hasQuests && (
-          <Text style={styles.progressText}>
-            {stats.activeQuests} ภาค {stats.popularProvinces.length} จังหวัด
-          </Text>
-        )}
-      </View>
 
-      {/* Show call to action if no quests but has shops */}
-      {!hasQuests && hasShops && (
-        <View style={styles.ctaContainer}>
-          <Text style={styles.ctaText}>
-            🎯 มี {stats.totalShops} ร้านค้ารอสร้างเควส
+        <Text style={styles.questDensityText}>
+          {hasQuests ? getQuestDensityText(stats.activeQuests) : 'ยังไม่มีเควส'}
+          {hasShops && !hasQuests && ' (มีร้านค้ารอเควส)'}
+        </Text>
+
+        <Text style={styles.trendingText}>📈 {stats.trending}</Text>
+
+        <View style={styles.popularProvinces}>
+          <Text style={styles.popularTitle}>
+            {hasQuests ? 'จังหวัดที่มีเควส:' : 'จังหวัดในภาค:'}
           </Text>
+          <View style={styles.provinceTags}>
+            {stats.popularProvinces.map((province, index) => (
+              <View key={index} style={[
+                styles.provinceTag,
+                hasQuests && styles.provinceTagActive
+              ]}>
+                <Text style={styles.provinceTagText}>{province}</Text>
+              </View>
+            ))}
+          </View>
         </View>
-      )}
-    </TouchableOpacity>
-  );
-};
+
+        <View style={styles.progressContainer}>
+          <Text style={styles.progressLabel}>
+            {hasQuests ? 'ความหนาแน่นของเควส' : 'รอเควสจากร้านค้า'}
+          </Text>
+          <View style={styles.progressBar}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: hasQuests ? `${Math.min((stats.activeQuests / 25) * 100, 100)}%` : '0%',
+                  backgroundColor: hasQuests ? getQuestDensityColor(stats.activeQuests) : '#6c757d'
+                }
+              ]}
+            />
+          </View>
+          {hasQuests && (
+            <Text style={styles.progressText}>
+              {stats.activeQuests} ภาค {stats.popularProvinces.length} จังหวัด
+            </Text>
+          )}
+        </View>
+
+        {/* Show call to action if no quests but has shops */}
+        {!hasQuests && hasShops && (
+          <View style={styles.ctaContainer}>
+            <Text style={styles.ctaText}>
+              🎯 มี {stats.totalShops} ร้านค้ารอสร้างเควส
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   const HotQuestsSection = () => (
     <View style={styles.hotQuestsSection}>
       <Text style={styles.sectionTitle}>🔥 เควสฮิตประจำวัน</Text>
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.hotQuestsScroll}
       >
@@ -463,11 +463,11 @@ const RegionCard = ({ region }) => {
           <Text style={styles.title}>ThaiQuestify</Text>
           <Text style={styles.subtitle}>ค้นหาเควสน่าสนใจใกล้คุณ</Text>
         </View>
-        
+
         <View style={styles.headerRight}>
           {user ? (
             // ถ้าล็อกอินแล้ว - แสดงโปรไฟล์
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.profileButton}
               onPress={() => navigation.navigate('Profile')}
             >
@@ -482,7 +482,7 @@ const RegionCard = ({ region }) => {
             </TouchableOpacity>
           ) : (
             // ถ้ายังไม่ได้ล็อกอิน - แสดงปุ่มเข้าสู่ระบบ
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.loginButton}
               onPress={() => navigation.navigate('Login')}
             >
@@ -493,7 +493,7 @@ const RegionCard = ({ region }) => {
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -506,12 +506,12 @@ const RegionCard = ({ region }) => {
             {user ? `ยินดีต้อนรับ, ${user.name}!` : 'ยินดีต้อนรับสู่ ThaiQuestify!'}
           </Text>
           <Text style={styles.welcomeText}>
-            {user 
+            {user
               ? `ค้นหาเควสน่าสนใจในพื้นที่ที่คุณต้องการ พร้อมรับรางวัลมากมาย`
               : 'เข้าสู่ระบบเพื่อค้นหาเควสน่าสนใจในพื้นที่ที่คุณต้องการ พร้อมรับรางวัลมากมาย'
             }
           </Text>
-          
+
           {user && <UserStats />}
         </View>
 
@@ -556,23 +556,23 @@ const RegionCard = ({ region }) => {
         )} */}
 
         {/* Quick Actions */}
-<View style={styles.quickActions}>
-  <TouchableOpacity 
-    style={styles.quickActionCard}
-    onPress={() => navigation.navigate('ExploreTab')}
-  >
-    <Icon name="explore" size={24} color="#4a6baf" />
-    <Text style={styles.quickActionText}>สำรวจเควส</Text>
-  </TouchableOpacity>
-  
-  <TouchableOpacity 
-    style={styles.quickActionCard}
-    onPress={() => navigation.navigate('QuestTab')}
-  >
-    <Icon name="assignment" size={24} color="#28a745" />
-    <Text style={styles.quickActionText}>เควสทั้งหมด</Text>
-  </TouchableOpacity>
-</View>
+        <View style={styles.quickActions}>
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            onPress={() => navigation.navigate('ExploreTab')}
+          >
+            <Icon name="explore" size={24} color="#4a6baf" />
+            <Text style={styles.quickActionText}>สำรวจเควส</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            onPress={() => navigation.navigate('QuestTab')}
+          >
+            <Icon name="assignment" size={24} color="#28a745" />
+            <Text style={styles.quickActionText}>เควสทั้งหมด</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Quick Profile Access */}
         {/* {user && (
@@ -1058,29 +1058,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   quickActions: {
-  flexDirection: 'row',
-  justifyContent: 'space-around',
-  marginBottom: 20,
-},
-quickActionCard: {
-  backgroundColor: 'white',
-  borderRadius: 12,
-  padding: 16,
-  alignItems: 'center',
-  flex: 1,
-  marginHorizontal: 8,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-  elevation: 2,
-},
-quickActionText: {
-  marginTop: 8,
-  fontSize: 12,
-  color: '#333',
-  textAlign: 'center',
-},
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  quickActionCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickActionText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#333',
+    textAlign: 'center',
+  },
 });
 
 export default LandingPage;

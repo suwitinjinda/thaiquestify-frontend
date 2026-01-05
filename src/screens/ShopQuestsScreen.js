@@ -14,7 +14,7 @@ import {
   Modal
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 import api from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -35,8 +35,8 @@ const ShopQuestsScreen = ({ route, navigation }) => {
   const fetchShopQuests = async () => {
     try {
       setLoading(true);
-        console.log('🔄 Fetching quests for shop:', shopId);
-        console.log("shopquest:",route.params)
+      console.log('🔄 Fetching quests for shop:', shopId);
+      console.log("shopquest:", route.params)
 
       // Fetch quests for this shop
       const questsResponse = await api.get(`/quests/shop/${shopId}`);
@@ -44,7 +44,7 @@ const ShopQuestsScreen = ({ route, navigation }) => {
 
       if (questsResponse.data.success) {
         const questsData = questsResponse.data.data || [];
-        
+
         const transformedQuests = questsData.map(quest => ({
           _id: quest._id,
           name: quest.name,
@@ -171,25 +171,25 @@ const ShopQuestsScreen = ({ route, navigation }) => {
   const handleVerification = async (verificationData) => {
     try {
       console.log('🔍 Starting verification for quest:', selectedQuest._id);
-      
+
       // Simulate verification process
       setVerificationStep(2); // Processing
-      
+
       // In real implementation, you would upload images/evidence to server
       setTimeout(async () => {
         try {
           // For demo purposes, we'll simulate a successful completion
           // In real app, you would call: await api.post('/quests/complete', {...})
-          
+
           setVerificationStep(3); // Success
-          
+
           // Refresh quests to update participation counts
           setTimeout(() => {
             setShowVerificationModal(false);
             setVerificationStep(0);
             fetchShopQuests(); // Refresh to show updated counts
           }, 2000);
-          
+
         } catch (error) {
           console.error('❌ Error completing quest:', error);
           setVerificationStep(4); // Error
@@ -240,7 +240,7 @@ const ShopQuestsScreen = ({ route, navigation }) => {
   };
 
   const QuestCard = ({ quest }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.questCard}
       onPress={() => handleQuestPress(quest)}
     >
@@ -274,35 +274,35 @@ const ShopQuestsScreen = ({ route, navigation }) => {
       <View style={styles.participantInfo}>
         <View style={styles.participantProgress}>
           <View style={styles.progressBar}>
-            <View 
+            <View
               style={[
                 styles.progressFill,
-                { 
+                {
                   width: `${Math.min((quest.currentParticipants / (quest.maxParticipants || 50)) * 100, 100)}%`,
                   backgroundColor: quest.currentParticipants >= quest.maxParticipants ? '#dc3545' : '#4a6baf'
                 }
-              ]} 
+              ]}
             />
           </View>
           <Text style={styles.participantText}>
             {quest.currentParticipants}/{quest.maxParticipants || 50} คน
           </Text>
         </View>
-        
+
         <View style={styles.verificationBadge}>
-          <Icon 
+          <Icon
             name={
               quest.verificationType === 'photo' ? 'camera-alt' :
-              quest.verificationType === 'location' ? 'location-on' :
-              'check-circle'
-            } 
-            size={14} 
-            color="#666" 
+                quest.verificationType === 'location' ? 'location-on' :
+                  'check-circle'
+            }
+            size={14}
+            color="#666"
           />
           <Text style={styles.verificationText}>
             {quest.verificationType === 'photo' ? 'ส่งรูปภาพ' :
-             quest.verificationType === 'location' ? 'เช็คอิน' :
-             'ยืนยันตัวตน'}
+              quest.verificationType === 'location' ? 'เช็คอิน' :
+                'ยืนยันตัวตน'}
           </Text>
         </View>
       </View>
@@ -319,7 +319,7 @@ const ShopQuestsScreen = ({ route, navigation }) => {
             <Text style={styles.verificationDescription}>
               {selectedQuest?.instructions}
             </Text>
-            
+
             {selectedQuest?.requirements?.map((req, index) => (
               <View key={index} style={styles.requirementItem}>
                 <Icon name="check-circle" size={16} color="#28a745" />
@@ -328,13 +328,13 @@ const ShopQuestsScreen = ({ route, navigation }) => {
             ))}
 
             <View style={styles.verificationButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => setShowVerificationModal(false)}
               >
                 <Text style={styles.cancelButtonText}>ยกเลิก</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.confirmButton}
                 onPress={() => handleVerification({ startedAt: new Date() })}
               >
@@ -377,7 +377,7 @@ const ShopQuestsScreen = ({ route, navigation }) => {
             <Text style={styles.verificationDescription}>
               ไม่สามารถทำเควสได้ในขณะนี้ โปรดลองใหม่ในภายหลัง
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.retryButton}
               onPress={() => setShowVerificationModal(false)}
             >
@@ -421,19 +421,19 @@ const ShopQuestsScreen = ({ route, navigation }) => {
 
       {/* Shop Info Banner */}
       <View style={styles.shopBanner}>
-        <Image 
-          source={{ uri: safeShopInfo.image }} 
+        <Image
+          source={{ uri: safeShopInfo.image }}
           style={styles.shopBannerImage}
           defaultSource={{ uri: 'https://via.placeholder.com/300' }}
         />
-              <View style={styles.shopBannerOverlay}>
-                  <Text style={styles.shopType}>{safeShopInfo.shopName}</Text>
+        <View style={styles.shopBannerOverlay}>
+          <Text style={styles.shopType}>{safeShopInfo.shopName}</Text>
           <Text style={styles.shopType}>{safeShopInfo.shopType}</Text>
           <Text style={styles.businessHours}>⏰ {safeShopInfo.businessHours}</Text>
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -503,7 +503,7 @@ const ShopQuestsScreen = ({ route, navigation }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{selectedQuest?.name}</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setShowQuestModal(false)}
               >
@@ -517,7 +517,7 @@ const ShopQuestsScreen = ({ route, navigation }) => {
               </Text>
 
               <View style={styles.detailSection}>
-                              <Text style={styles.detailSectionTitle}>รางวัล</Text>
+                <Text style={styles.detailSectionTitle}>รางวัล</Text>
                 <View style={styles.rewardDetails}>
                   <View style={styles.rewardDetailItem}>
                     <Icon name="attach-money" size={20} color="#28a745" />
@@ -535,7 +535,7 @@ const ShopQuestsScreen = ({ route, navigation }) => {
               </View>
 
               <View style={styles.detailSection}>
-                              <Text style={styles.detailSectionTitle}>วิธีการทำ</Text>
+                <Text style={styles.detailSectionTitle}>วิธีการทำ</Text>
                 <Text style={styles.instructionsText}>
                   {selectedQuest?.instructions}
                 </Text>
@@ -543,7 +543,7 @@ const ShopQuestsScreen = ({ route, navigation }) => {
 
               {selectedQuest?.requirements?.length > 0 && (
                 <View style={styles.detailSection}>
-                                  <Text style={styles.detailSectionTitle}>ข้อกำหนด</Text>
+                  <Text style={styles.detailSectionTitle}>ข้อกำหนด</Text>
                   {selectedQuest.requirements.map((req, index) => (
                     <View key={index} style={styles.requirementDetailItem}>
                       <Icon name="check-circle" size={16} color="#28a745" />
@@ -554,7 +554,7 @@ const ShopQuestsScreen = ({ route, navigation }) => {
               )}
 
               <View style={styles.detailSection}>
-                              <Text style={styles.detailSectionTitle}>ข้อมูลเพิ่มเติม</Text>
+                <Text style={styles.detailSectionTitle}>ข้อมูลเพิ่มเติม</Text>
                 <View style={styles.questMeta}>
                   <View style={styles.metaItem}>
                     <Icon name="people" size={16} color="#666" />
@@ -573,7 +573,7 @@ const ShopQuestsScreen = ({ route, navigation }) => {
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.startQuestButton}
                 onPress={startQuest}
               >
