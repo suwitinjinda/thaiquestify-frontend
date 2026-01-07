@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://34.68.216.20:5000/api/v2';
+const BASE_URL = 'https://thaiquestify.com/api/v2';
 
 export const useStreak = () => {
     const isMounted = useRef(true);
@@ -53,7 +53,7 @@ export const useStreak = () => {
                 console.log(`🔑 Token length: ${token.length}, starts with: ${token.substring(0, 30)}...`);
             }
 
-            const fullUrl = `http://34.68.216.20:5000/api/v2${endpoint}`;
+            const fullUrl = `https://thaiquestify.com/api/v2${endpoint}`;
             console.log(`🔗 Full URL: ${fullUrl}`);
 
             const config = {

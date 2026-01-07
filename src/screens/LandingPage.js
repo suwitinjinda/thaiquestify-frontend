@@ -52,7 +52,7 @@ const LandingPage = ({ navigation }) => {
   // ตรวจสอบว่า DailyQuests screen พร้อมใช้งาน
   const [dailyQuestsAvailable, setDailyQuestsAvailable] = useState(false);
 
-  const API_BASE_URL = 'http://34.68.216.20:5000';
+  const API_BASE_URL = 'http://127.0.0.1:5000';
 
   // โหลด Social Quests และ TikTok เมื่อ focus หน้า
   useFocusEffect(

@@ -4,17 +4,17 @@ export const testBackendConnection = async () => {
         console.log('🔗 Testing backend connection...');
 
         // Test 1: Basic connection
-        const testResponse = await fetch('http://34.68.216.20:5000/api/v2/test');
+        const testResponse = await fetch('https://thaiquestify.com/api/v2/test');
         const testData = await testResponse.json();
         console.log('✅ Basic test:', testData);
 
         // Test 2: Streak stats
-        const statsResponse = await fetch('http://34.68.216.20:5000/api/v2/streak/stats');
+        const statsResponse = await fetch('https://thaiquestify.com/api/v2/streak/stats');
         const statsData = await statsResponse.json();
         console.log('✅ Streak stats:', statsData);
 
         // Test 3: Daily quests
-        const questsResponse = await fetch('http://34.68.216.20:5000/api/v2/daily-quests/today');
+        const questsResponse = await fetch('https://thaiquestify.com/api/v2/daily-quests/today');
         const questsData = await questsResponse.json();
         console.log('✅ Daily quests:', questsData.data.length, 'quests');
 

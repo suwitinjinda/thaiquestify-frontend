@@ -8,10 +8,8 @@ import NetInfo from '@react-native-community/netinfo';
 // 1. API CONFIGURATION
 // ============================================
 
-// Your backend server with external IP
-const BACKEND_EXTERNAL_IP = '34.68.216.20';
-const BACKEND_PORT = '5000';
-const BACKEND_BASE_URL = `http://${BACKEND_EXTERNAL_IP}:${BACKEND_PORT}/api/`;
+// Backend server through nginx proxy
+const BACKEND_BASE_URL = 'https://thaiquestify.com/api/';
 
 // Alternative: If you want to use HTTPS (recommended for production)
 // const BACKEND_BASE_URL = `https://${BACKEND_EXTERNAL_IP}:${BACKEND_PORT}/api/`;
@@ -19,8 +17,8 @@ const BACKEND_BASE_URL = `http://${BACKEND_EXTERNAL_IP}:${BACKEND_PORT}/api/`;
 // const BACKEND_BASE_URL = 'https://thaiquestify.com/api/';
 
 const getBaseURL = () => {
-  // Always use external IP for now - it works for all devices
-  console.log(`🌐 Using external backend: ${BACKEND_EXTERNAL_IP}`);
+  // Using nginx proxy on same server
+  console.log(`🌐 Using backend through nginx: ${BACKEND_BASE_URL}`);
   return BACKEND_BASE_URL;
 };
 

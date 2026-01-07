@@ -3,7 +3,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_V2_CONFIG = {
-  baseURL: 'http://34.68.216.20:5000/api/v2',
+  baseURL: 'https://thaiquestify.com/api/v2',
 
   endpoints: {
     streak: {
