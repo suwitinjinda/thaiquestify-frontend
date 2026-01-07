@@ -144,40 +144,41 @@ function MainTabs() {
 }
 
 function AppNavigator() {
-  const { user, loading, setUser, setLoading } = useAuth();
+  // const { user, loading, setUser, setLoading } = useAuth();
+  const { user } = useAuth();
 
   // Check if user is logged in on app start
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const token = await AsyncStorage.getItem('authToken');
-        const userData = await AsyncStorage.getItem('userData');
+  // useEffect(() => {
+  //   const checkLoginStatus = async () => {
+  //     try {
+  //       const token = await AsyncStorage.getItem('authToken');
+  //       const userData = await AsyncStorage.getItem('userData');
 
-        if (token && userData) {
-          setUser(JSON.parse(userData));
-        }
-      } catch (error) {
-        console.error('Error checking login status:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  //       if (token && userData) {
+  //         setUser(JSON.parse(userData));
+  //       }
+  //     } catch (error) {
+  //       console.error('Error checking login status:', error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-    checkLoginStatus();
-  }, []);
+  //   checkLoginStatus();
+  // }, []);
 
   console.log('AppNavigator - User:', user ? 'Logged in' : 'Not logged in');
-  console.log('AppNavigator - Loading:', loading);
+  // console.log('AppNavigator - Loading:', loading);
 
-  if (loading) {
-    const { View, Text, ActivityIndicator } = require('react-native');
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#4a6baf" />
-        <Text style={{ marginTop: 10 }}>กำลังโหลด...</Text>
-      </View>
-    );
-  }
+  // if (loading) {
+  //   const { View, Text, ActivityIndicator } = require('react-native');
+  //   return (
+  //     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+  //       <ActivityIndicator size="large" color="#4a6baf" />
+  //       <Text style={{ marginTop: 10 }}>กำลังโหลด...</Text>
+  //     </View>
+  //   );
+  // }
 
   return (
     <Stack.Navigator
@@ -328,22 +329,34 @@ export default function App() {
         }
 
         // 🔥 ถ้าเป็น Facebook OAuth ปกติสำหรับ login
-        if (url.includes('expo-auth-session') ||
-          url.includes('auth.expo.io') ||
-          url.includes('code=') ||
-          url.includes('facebook')) {
+        // if (url.includes('expo-auth-session') ||
+        //   url.includes('auth.expo.io') ||
+        //   url.includes('code=') ||
+        //   url.includes('facebook')) {
 
-          console.log('✅ Facebook LOGIN callback detected!');
+        //   console.log('✅ Facebook LOGIN callback detected!');
 
-          await AsyncStorage.setItem('facebook_callback_url', url);
+        //   await AsyncStorage.setItem('facebook_callback_url', url);
 
-          setTimeout(() => {
-            if (navigationRef.current) {
-              console.log('🔄 Navigating to WebCallback screen');
-              navigationRef.current.navigate('WebCallback', { url });
-            }
-          }, 1000);
-        }
+        //   setTimeout(() => {
+        //     if (navigationRef.current) {
+        //       console.log('🔄 Navigating to WebCallback screen');
+        //       navigationRef.current.navigate('WebCallback', { url });
+        //     }
+        //   }, 1000);
+        // }
+
+        // ✅ ONLY handle Facebook callback here (not Google)
+if (url.includes('/auth/callback') || url.includes('facebook')) {
+  console.log('✅ Facebook callback detected!');
+  await AsyncStorage.setItem('facebook_callback_url', url);
+ 
+  setTimeout(() => {
+    if (navigationRef.current) {
+      navigationRef.current.navigate('WebCallback', { url });
+    }
+  }, 1000);
+}
       }
     };
 
@@ -369,6 +382,7 @@ export default function App() {
   const linking = {
     prefixes: [
       'thaiquestify://',
+      'https://thaiquestify.com',
       'https://auth.expo.io/@anonymous/thaiquestify',
       'exp://',
     ],

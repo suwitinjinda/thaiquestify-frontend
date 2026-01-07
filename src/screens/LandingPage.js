@@ -107,7 +107,7 @@ const LandingPage = ({ navigation }) => {
       const timestamp = Date.now();
       const token = `user-token-${userId}-${timestamp}`;
 
-      const response = await axios.get(`${API_BASE_URL}/api/user/tiktok-status`, {
+      const response = await axios.get(`${API_BASE_URL}/api/integrations/tiktok/status`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -297,19 +297,7 @@ const LandingPage = ({ navigation }) => {
       tiktokAuthInProgress.current = true;
       setShowTikTokConnect(false);
 
-      // สมมติว่าเรามีหน้า TikTokAuthScreen
-      navigation.navigate('TikTokAuth', {
-        onSuccess: () => {
-          console.log('✅ TikTok connected successfully');
-          Alert.alert('สำเร็จ', 'เชื่อมต่อบัญชี TikTok สำเร็จแล้ว!');
-          setTiktokConnected(true);
-          loadTikTokChallenges();
-        },
-        onError: (error) => {
-          console.error('❌ TikTok connection failed:', error);
-          Alert.alert('ไม่สำเร็จ', 'ไม่สามารถเชื่อมต่อ TikTok ได้: ' + error);
-        }
-      });
+      navigation.navigate('ProfileTab');
 
     } catch (error) {
       console.error('❌ Error connecting TikTok:', error);
@@ -378,7 +366,7 @@ const LandingPage = ({ navigation }) => {
         );
 
         // นำทางไปหน้า verify หรือ instructions
-        navigation.navigate('TikTokChallengeDetail', { challengeId });
+        navigation.navigate('QuestDetails', { questId: challengeId });
 
       } else {
         Alert.alert('ไม่สำเร็จ', 'ไม่สามารถเข้าร่วม Challenge ได้: ' + response.data.message);
@@ -973,7 +961,7 @@ const LandingPage = ({ navigation }) => {
                       <TouchableOpacity
                         style={styles.socialQuestContent}
                         activeOpacity={0.7}
-                        onPress={() => navigation.navigate('TikTokChallengeDetail', { challengeId: quest._id })}
+                        onPress={() => navigation.navigate('QuestDetails', { questId: quest._id })}
                       >
                         {/* TikTok Platform Badge */}
                         {renderPlatformBadge(quest.platform)}

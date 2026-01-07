@@ -1,0 +1,10 @@
+diff --git a/app.json b/app.json
+--- a/app.json
++++ b/app.json
+@@ -17,7 +17,7 @@
+             {
+               "scheme": "https",
+               "host": "thaiquestify.com",
+-              "pathPrefix": "/auth/callback"
++              "pathPrefix": "/auth"
+             }
